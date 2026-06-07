@@ -129,9 +129,11 @@ Unoptimized In-Game Settings: Highlights when dynamic frame limits and heavy con
 
 
 
-                              ADD IN THE NEW UPDATE FOLLOW THIS THROUGH
+                             VERSION NAME IS 1.2 ADD IN THE NEW
+                             UPDATE FOLLOW THIS THROUGH
                               
-      successfully implemented the RAM Daemon Process Cleaner engine inside the Apex Tuner utility.
+                   successfully implemented the RAM Daemon Process 
+                     Cleaner engine inside the Apex Tuner utility.
 Here is a summary of the accomplishments, detailing both background-process scanning and one-tap clearing mechanisms:
 ⚙️ What Was Implemented
 Active Thread & Daemon Scanner:
