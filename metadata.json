@@ -1,0 +1,6 @@
+{
+  "name": "Apex Tuner",
+  "description": "Premium Android hardware tuning & phone optimizer utility. Features RAM cleaning, storage optimization, thermal analytics, adaptive power modes, and advanced gaming graphics configs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

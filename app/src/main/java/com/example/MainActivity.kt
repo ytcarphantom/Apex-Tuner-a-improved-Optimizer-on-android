@@ -1,0 +1,3269 @@
+package com.example
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Launch
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.theme.MyApplicationTheme
+
+// --- TECHNICAL DASHBOARD COLOR PALETTE ---
+val ObsidianBg = Color(0xFFF3F4F9) // The main background
+val CarbonCard = Color(0xFFFFFFFF) // Surface background for cards
+val NeonCyan = Color(0xFF415F91) // The premium slate-royal blue primary/active accent color
+val NeonGreen = Color(0xFF386A20) // A nice dark forest green for "Optimized", positive states
+val AlertOrange = Color(0xFFE07A5F) // Soft coral/orange for medium warnings
+val HotRed = Color(0xFFD32F2F) // Vibrant soft red for critical warnings or power-saving
+val SlateGray = Color(0xFF44474E) // Text color for subheadings/details
+val LightWhite = Color(0xFF1B1B1F) // The main text color (high contrast dark grey)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            ApexTunerDarkTheme {
+                Scaffold(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(ObsidianBg)
+                ) { innerPadding ->
+                    TunerDashboardScreen(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ApexTunerDarkTheme(content: @Composable () -> Unit) {
+    val lightColors = lightColorScheme(
+        primary = NeonCyan,
+        onPrimary = Color.White,
+        secondary = NeonGreen,
+        onSecondary = Color.White,
+        background = ObsidianBg,
+        onBackground = LightWhite,
+        surface = CarbonCard,
+        onSurface = LightWhite,
+        error = HotRed
+    )
+    MaterialTheme(
+        colorScheme = lightColors,
+        typography = Typography(
+            titleLarge = LocalTextStyle.current.copy(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+                letterSpacing = 1.sp
+            ),
+            bodyLarge = LocalTextStyle.current.copy(
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 15.sp
+            )
+        ),
+        content = content
+    )
+}
+
+@Composable
+fun AppIconImage(packageName: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val imageBitmap = remember(packageName) {
+        try {
+            val pm = context.packageManager
+            val iconDrawable = pm.getApplicationIcon(packageName)
+            val width = iconDrawable.intrinsicWidth.coerceAtLeast(1)
+            val height = iconDrawable.intrinsicHeight.coerceAtLeast(1)
+            val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            iconDrawable.setBounds(0, 0, width, height)
+            iconDrawable.draw(canvas)
+            bitmap.asImageBitmap()
+        } catch (e: Exception) {
+            null
+        }
+    }
+    if (imageBitmap != null) {
+        androidx.compose.foundation.Image(
+            bitmap = imageBitmap,
+            contentDescription = "App Icon",
+            modifier = modifier
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Filled.PlayArrow,
+            contentDescription = "App Icon",
+            tint = NeonCyan,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+fun TunerDashboardScreen(
+    modifier: Modifier = Modifier,
+    viewModel: TunerViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    LaunchedEffect(context) {
+        viewModel.initPersistence(context)
+    }
+    val state by viewModel.uiState.collectAsState()
+    LaunchedEffect(state.forcePeakRefreshRate) {
+        val window = (context as? android.app.Activity)?.window
+        if (window != null) {
+            try {
+                if (state.forcePeakRefreshRate) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        val display = context.display
+                        val maxMode = display?.supportedModes?.maxByOrNull { it.refreshRate }
+                        if (maxMode != null) {
+                            val params = window.attributes
+                            params.preferredDisplayModeId = maxMode.modeId
+                            window.attributes = params
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val params = window.attributes
+                        params.preferredRefreshRate = 120f
+                        window.attributes = params
+                    }
+                } else {
+                    val params = window.attributes
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        params.preferredDisplayModeId = 0
+                    } else {
+                        @Suppress("DEPRECATION")
+                        params.preferredRefreshRate = 0f
+                    }
+                    window.attributes = params
+                }
+            } catch (e: Exception) {}
+        }
+    }
+    var gameSearchQuery by remember { mutableStateOf("") }
+    val configuration = LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(ObsidianBg)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // --- TOP HEADER BAR ---
+            TopHeaderBar(state = state)
+
+            // --- MAIN TABS (BOTTOM NAVIGATION STYLE AT TOP FOR ACCESSIBILITY MATCH) ---
+            TunerTabBar(
+                activeTab = state.activeTab,
+                onTabSelected = { viewModel.selectTab(it) }
+            )
+
+            // --- PAGE CONTENT SPLIT BY TAB AND SCREEN SIZE Class ---
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (isTablet) {
+                    TabletLayout(
+                        state = state,
+                        viewModel = viewModel
+                    )
+                } else {
+                    MobileLayout(
+                        state = state,
+                        viewModel = viewModel
+                    )
+                }
+            }
+        }
+
+        // --- FLOATING MICRO-APP OVERLAY SIMULATOR ---
+        state.activeFloatingApp?.let { appName ->
+            FloatingAppSimulator(
+                appName = appName,
+                onDismiss = { viewModel.toggleFloatingApp(appName) }
+            )
+        }
+    }
+}
+
+@Composable
+fun TopHeaderBar(state: TunerUiState) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ObsidianBg)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(
+                text = "APEX TUNER x64",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = NeonCyan,
+                letterSpacing = 1.5.sp
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (state.score > 85) NeonGreen else AlertOrange)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (state.score > 85) "DEVICE STATUS: OPTIMIZED" else "BOTTLENECK DETECTED",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.score > 85) NeonGreen else AlertOrange,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .border(1.dp, Color(0xFFC3C6CF), RoundedCornerShape(8.dp)),
+            color = Color(0xFFDDE2F1),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Bolt,
+                    contentDescription = "Core Score",
+                    tint = NeonGreen,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${state.score}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = LightWhite
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TunerTabBar(
+    activeTab: TunerTab,
+    onTabSelected: (TunerTab) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CarbonCard)
+            .border(width = (0.5).dp, color = Color(0xFFDEE3EB))
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        TunerTabItem(
+            tab = TunerTab.TUNE_UP,
+            label = "TUNE-UP",
+            icon = Icons.Filled.Speed,
+            isActive = activeTab == TunerTab.TUNE_UP,
+            onClick = { onTabSelected(TunerTab.TUNE_UP) },
+            testTag = "tab_tune_up"
+        )
+        TunerTabItem(
+            tab = TunerTab.GAME_RESOURCES,
+            label = "GAME ENGINE",
+            icon = Icons.Filled.SportsEsports,
+            isActive = activeTab == TunerTab.GAME_RESOURCES,
+            onClick = { onTabSelected(TunerTab.GAME_RESOURCES) },
+            testTag = "tab_game_engine"
+        )
+        TunerTabItem(
+            tab = TunerTab.DEV_TWEAKS,
+            label = "DEV TWEAKS",
+            icon = Icons.Filled.Build,
+            isActive = activeTab == TunerTab.DEV_TWEAKS,
+            onClick = { onTabSelected(TunerTab.DEV_TWEAKS) },
+            testTag = "tab_dev_tweaks"
+        )
+    }
+}
+
+@Composable
+fun TunerTabItem(
+    tab: TunerTab,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    testTag: String
+) {
+    val indicatorColor = if (isActive) NeonCyan else Color.Transparent
+    val tintColor = if (isActive) NeonCyan else SlateGray
+
+    Column(
+        modifier = Modifier
+            .testTag(testTag)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 16.dp)
+            .widthIn(min = 80.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = tintColor,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+            color = tintColor,
+            fontSize = 11.sp,
+            letterSpacing = 0.5.sp
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .height(2.dp)
+                .width(42.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(indicatorColor)
+        )
+    }
+}
+
+@Composable
+fun MobileLayout(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    AnimatedContent(
+        targetState = state.activeTab,
+        transitionSpec = {
+            slideInHorizontally { width -> if (targetState > initialState) width else -width } + fadeIn() togetherWith
+            slideOutHorizontally { width -> if (targetState > initialState) -width else width } + fadeOut()
+        },
+        label = "TabSwitcher"
+    ) { targetTab ->
+        when (targetTab) {
+            TunerTab.TUNE_UP -> TuneUpTabContent(state = state, viewModel = viewModel, isTablet = false)
+            TunerTab.GAME_RESOURCES -> GameEngineTabContent(state = state, viewModel = viewModel, isTablet = false)
+            TunerTab.DEV_TWEAKS -> DevTweaksTabContent(state = state, viewModel = viewModel, isTablet = false)
+        }
+    }
+}
+
+@Composable
+fun TabletLayout(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    // Left sidebar summary, right content grid
+    Row(modifier = Modifier.fillMaxSize()) {
+        Card(
+            modifier = Modifier
+                .width(320.dp)
+                .fillMaxHeight()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CarbonCard),
+            border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.15f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "REAL-TIME DIAGNOSTIC GAUGE",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonCyan,
+                    textAlign = TextAlign.Center
+                )
+
+                PerformanceDial(score = state.score, size = 150.dp, state = state)
+
+                HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f))
+
+                TelemetryItemCard(
+                    title = "Estimated Battery Duration",
+                    value = "${state.estimatedBatteryTimeHr} hrs",
+                    icon = Icons.Filled.Power,
+                    color = NeonGreen
+                )
+
+                TelemetryItemCard(
+                    title = "Tuning Core Score",
+                    value = "${state.score} index",
+                    icon = Icons.Filled.Bolt,
+                    color = NeonCyan
+                )
+
+                Text(
+                    text = "Optimal standard storage overhead is below 85% to maintain flash chip write performance and block speed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SlateGray,
+                    textAlign = TextAlign.Center,
+                    fontSize = 11.sp
+                )
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            when (state.activeTab) {
+                TunerTab.TUNE_UP -> TuneUpTabContent(state = state, viewModel = viewModel, isTablet = true)
+                TunerTab.GAME_RESOURCES -> GameEngineTabContent(state = state, viewModel = viewModel, isTablet = true)
+                TunerTab.DEV_TWEAKS -> DevTweaksTabContent(state = state, viewModel = viewModel, isTablet = true)
+            }
+        }
+    }
+}
+
+// ==========================================
+// --- TUNE-UP (CORE OPTIMIZATION BAR) ---
+// ==========================================
+
+@Composable
+fun TuneUpTabContent(
+    state: TunerUiState,
+    viewModel: TunerViewModel,
+    isTablet: Boolean
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (!isTablet) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                    border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.1f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "SYSTEM ENGINE HEALTH",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = SlateGray,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        PerformanceDial(score = state.score, size = 180.dp, state = state)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Last optimized: ${state.lastOptimizedTime}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- GENERAL OPTIMIZER MASTER BAR ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "HARDWARE SECURE TUNER",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = LightWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Wipes leftover application caches, optimizes RAM blocks, and freezes location/network ping background servers.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    )
+
+                    AnimatedVisibility(visible = state.isClearing) {
+                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = state.clearStatus,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${(state.clearProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = { state.clearProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp),
+                                color = NeonCyan,
+                                trackColor = Color(0xFFDEE3EB)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.triggerSystemOptimization() },
+                            enabled = !state.isClearing,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(48.dp)
+                                .testTag("btn_master_optimize"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NeonCyan,
+                                contentColor = Color.White,
+                                disabledContainerColor = SlateGray
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.FlashOn,
+                                contentDescription = "Flash Optimize",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("OPTIMIZE SYSTEM", fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.clearJunkOnly() },
+                            enabled = !state.isClearing,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("btn_trim_junk"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CarbonCard,
+                                contentColor = NeonCyan,
+                                disabledContainerColor = SlateGray
+                            ),
+                            border = BorderStroke(1.dp, NeonCyan),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("TRIM JUNK", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- HARDWARE TELEMETRY INDIVIDUAL CONTROLS ---
+        item {
+            HardwareMonitorRow(state = state, viewModel = viewModel)
+        }
+
+        // --- BATTERY & POWER DAEMONS BAR ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF0F4FF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Power,
+                            contentDescription = "Battery deep sleep",
+                            tint = if (state.batteryDeepSleepEnabled) NeonGreen else AlertOrange,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Background App Deep Sleep",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite
+                        )
+                        Text(
+                            text = if (state.batteryDeepSleepEnabled) {
+                                "${state.appsSleepingCount} energy-hungry background trackers frozen."
+                            } else {
+                                "Unrestricted system background triggers draining juice."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray
+                        )
+                    }
+                    Switch(
+                        checked = state.batteryDeepSleepEnabled,
+                        onCheckedChange = { viewModel.toggleBatteryDeepSleep(it) },
+                        modifier = Modifier.testTag("switch_deep_sleep"),
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = NeonGreen,
+                            checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                            uncheckedThumbColor = SlateGray,
+                            uncheckedTrackColor = Color(0xFFDEE3EB)
+                        )
+                    )
+                }
+            }
+        }
+
+        // --- CORE BACKGROUND APP HIBERNATOR PANEL ---
+        item {
+            val context = LocalContext.current
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_active_hibernator"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFC3C6CF).copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Eco,
+                                contentDescription = "Active Hibernator",
+                                tint = NeonGreen,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Column {
+                                Text(
+                                    text = "ACTIVE APP HIBERNATOR",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Hibernate background allocators to prevent CPU spikes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (state.isScanningApps) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF3F4F9), RoundedCornerShape(8.dp))
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = NeonCyan,
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "SCANNING CURRENT PACKAGES...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                    } else if (state.localGameLaunchInstalled.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF3F4F9), RoundedCornerShape(8.dp))
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "No user packages loaded yet",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { viewModel.scanInstalledApps(context) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                                ) {
+                                    Text("SCAN INSTALLED APPS", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Display top 6 apps
+                            state.localGameLaunchInstalled.take(6).forEach { app ->
+                                val isHibernated = state.hibernatedApps.contains(app.packageName)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            if (isHibernated) Color(0xFFE8F5E9) else Color(0xFFF3F4F9),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .border(1.dp, if (isHibernated) NeonGreen.copy(alpha = 0.3f) else Color(0xFFDEE3EB).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = app.label,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LightWhite
+                                        )
+                                        Text(
+                                            text = app.packageName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontSize = 9.sp,
+                                            color = SlateGray
+                                        )
+                                    }
+                                    
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    if (isHibernated) NeonGreen else SlateGray.copy(alpha = 0.2f),
+                                                    RoundedCornerShape(4.dp)
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isHibernated) "HIBERNATED" else "ACTIVE",
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isHibernated) Color.White else SlateGray
+                                            )
+                                        }
+                                        
+                                        IconButton(
+                                            onClick = { viewModel.toggleHibernateApp(app.packageName, app.label, context) },
+                                            modifier = Modifier.size(36.dp).testTag("btn_hibernate_${app.packageName.replace(".", "_")}")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isHibernated) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                                                contentDescription = if (isHibernated) "Wake" else "Hibernate",
+                                                tint = if (isHibernated) NeonGreen else AlertOrange,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HardwareMonitorRow(state: TunerUiState, viewModel: TunerViewModel) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // RAM CARD
+        Card(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 160.dp),
+            colors = CardDefaults.cardColors(containerColor = CarbonCard),
+            border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Memory,
+                        contentDescription = "RAM info",
+                        tint = NeonCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "RAM",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = SlateGray
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "${state.ramUsedPercent}%",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (state.ramUsedPercent > 75) AlertOrange else NeonGreen
+                )
+                Text(
+                    text = "${(state.ramTotalGb * state.ramUsedPercent / 100.0).format(1)} GB / ${state.ramTotalGb} GB Used",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SlateGray
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { state.ramUsedPercent / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = if (state.ramUsedPercent > 75) AlertOrange else NeonCyan,
+                    trackColor = Color(0xFFDEE3EB)
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("JVM Heap", fontSize = 10.sp, color = SlateGray)
+                    Text(
+                        text = if (state.score > 85) "Cleaned" else "Accumulating",
+                        fontSize = 10.sp,
+                        color = if (state.score > 85) NeonGreen else AlertOrange,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Frozen", fontSize = 10.sp, color = SlateGray)
+                    Text(
+                        text = "${state.hibernatedApps.size} apps",
+                        fontSize = 10.sp,
+                        color = NeonCyan,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "SWEEP MEMORY",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonCyan,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clickable { viewModel.clearRamOnly() }
+                        .padding(4.dp)
+                )
+            }
+        }
+
+        // STORAGE CARD (with 85% safety trigger logic)
+        Card(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 160.dp),
+            colors = CardDefaults.cardColors(containerColor = CarbonCard),
+            border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Storage,
+                        contentDescription = "Internal storage",
+                        tint = if (state.storageUsedPercent >= 85) HotRed else NeonCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "STORAGE",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = SlateGray
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "${state.storageUsedPercent}%",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = if (state.storageUsedPercent >= 85) HotRed else NeonGreen
+                    )
+                    if (state.storageUsedPercent >= 85) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = "Above 85%!",
+                            tint = HotRed,
+                            modifier = Modifier
+                                .size(14.dp)
+                                .align(Alignment.CenterVertically)
+                        )
+                    }
+                }
+                Text(
+                    text = "${(state.storageTotalGb * state.storageUsedPercent / 100).toInt()} GB / ${state.storageTotalGb.toInt()} GB",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SlateGray
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { state.storageUsedPercent / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = if (state.storageUsedPercent >= 85) HotRed else NeonCyan,
+                    trackColor = Color(0xFFDEE3EB)
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Temp Cache", fontSize = 10.sp, color = SlateGray)
+                    Text(
+                        text = if (state.score > 90) "0 B" else "Pending Trim",
+                        fontSize = 10.sp,
+                        color = if (state.score > 90) NeonGreen else AlertOrange,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("File System", fontSize = 10.sp, color = SlateGray)
+                    Text(
+                        text = "Healthy",
+                        fontSize = 10.sp,
+                        color = NeonGreen,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = if (state.storageUsedPercent >= 85) "CRITICAL DRAIN" else "HEALTHY DRIVE",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (state.storageUsedPercent >= 85) HotRed else SlateGray,
+                    modifier = Modifier.align(Alignment.End)
+                )
+            }
+        }
+    }
+}
+
+// Helper to format doubles
+fun Double.format(digits: Int) = String.format("%.${digits}f", this)
+
+@Composable
+fun AutomatedStatusMetricsRow(
+    label: String,
+    active: Boolean,
+    activeText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = SlateGray,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = if (active) activeText else "Inactive / Default",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (active) NeonGreen else SlateGray
+        )
+    }
+}
+
+
+// ==========================================
+// --- GAME TUNER ENGINE (SAMSUNG BOOSTER) ---
+// ==========================================
+
+@Composable
+fun GameEngineTabContent(
+    state: TunerUiState,
+    viewModel: TunerViewModel,
+    isTablet: Boolean
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredGames = state.localGameLaunchInstalled.filter {
+        it.label.contains(searchQuery, ignoreCase = true)
+    }
+    val context = LocalContext.current
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // --- REAL-TIME TELEMETRY PANEL ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFC3C6CF))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "LIVE GRAPHICS GRAPH",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = NeonCyan,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Stats Grid Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        TelemetryCircularNode(
+                            label = "FPS METER",
+                            value = "${state.gameFps}",
+                            accentColor = if (state.selectedProfile == GameProfile.PERFORMANCE) NeonCyan else NeonGreen,
+                            icon = Icons.Filled.Tv
+                        )
+                        TelemetryCircularNode(
+                            label = "CORE TEMP",
+                            value = "${state.coolingTempCelsius}°C",
+                            accentColor = if (state.coolingTempCelsius > 40) AlertOrange else NeonGreen,
+                            icon = Icons.Filled.Bolt
+                        )
+                        TelemetryCircularNode(
+                            label = "PING STATS",
+                            value = "${state.latencyPingMs}ms",
+                            accentColor = if (state.latencyPingMs < 30) NeonGreen else SlateGray,
+                            icon = Icons.Filled.NetworkCheck
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Active Profiles dynamically change hardware constraints for frame lock caps, thread scheduling, and CPU governor speeds.",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // --- AUTOMATED GAME LAUNCH & DAEMON DETECTION ---
+        item {
+            val context = LocalContext.current
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_automated_launcher"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFC3C6CF))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Gamepad,
+                                contentDescription = "Automated Game Daemon",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "AUTO-DETECTION PROCESS",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Intercepts gaming apps on launch",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = state.autoDetectGameLaunchEnabled,
+                            onCheckedChange = { viewModel.setAutoDetectGameLaunch(it) },
+                            modifier = Modifier.testTag("switch_auto_detect"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Deep Scanner Button Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "My Handheld Apps Storage",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SlateGray
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (state.isScanningApps) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = NeonCyan,
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = "Scanning device...",
+                                    fontSize = 11.sp,
+                                    color = NeonCyan,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            } else {
+                                Button(
+                                    onClick = { viewModel.scanInstalledApps(context) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonCyan.copy(alpha = 0.1f),
+                                        contentColor = NeonCyan
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.height(28.dp).testTag("btn_scan_packages")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = "Scan",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Detect My Apps",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "SIMULATE GAME LAUNCH",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = LightWhite
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Select an installed application. The daemon automatically suspends background loops, suppresses alarms/toasts, pins CPU/GPU cores, and drops network latency.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Real-Time Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("game_search_input"),
+                        placeholder = { Text("Search games to play...", color = SlateGray, fontSize = 13.sp) },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                tint = SlateGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Clear,
+                                        contentDescription = "Clear",
+                                        tint = SlateGray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = LightWhite,
+                            unfocusedTextColor = LightWhite,
+                            focusedBorderColor = NeonCyan,
+                            unfocusedBorderColor = Color(0xFFDEE3EB),
+                            focusedContainerColor = Color(0xFFF3F4F9),
+                            unfocusedContainerColor = Color(0xFFF3F4F9)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (filteredGames.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF3F4F9))
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No matching games or applications found.",
+                                color = SlateGray,
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        filteredGames.forEach { game ->
+                            val gameName = game.label
+                            val isRunningThis = state.runningGame == gameName
+                            val currentIntensity = state.gameIntensities[gameName] ?: GameLoadIntensity.MODERATE
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isRunningThis) NeonCyan.copy(alpha = 0.08f) else Color(0xFFF3F4F9))
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isRunningThis) NeonCyan else Color(0xFFDEE3EB),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        // Dynamic high-res App Icon
+                                        AppIconImage(
+                                            packageName = game.packageName,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                        )
+                                        Text(
+                                            text = gameName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = LightWhite,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Button(
+                                        onClick = { 
+                                            if (isRunningThis) {
+                                                viewModel.closeActiveGame()
+                                            } else {
+                                                viewModel.launchGameWithDetection(context, gameName, game.packageName)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .height(32.dp)
+                                            .testTag("btn_launch_${gameName.replace(" ", "_")}"),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isRunningThis) HotRed else NeonCyan,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isRunningThis) "Eject" else "Launch",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Load config weight selectors - "The players can config what games are more heavier or more light weight"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Load Weight:",
+                                        fontSize = 10.sp,
+                                        color = SlateGray,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    GameLoadIntensity.values().forEach { intensity ->
+                                        val isSelected = currentIntensity == intensity
+                                        val intensityColor = when (intensity) {
+                                            GameLoadIntensity.LIGHTWEIGHT -> NeonGreen
+                                            GameLoadIntensity.MODERATE -> NeonCyan
+                                            GameLoadIntensity.HEAVY -> HotRed
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(if (isSelected) intensityColor.copy(alpha = 0.15f) else Color.Transparent)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = if (isSelected) intensityColor else Color(0xFFDEE3EB).copy(alpha = 0.5f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                )
+                                                .clickable { viewModel.setGameIntensity(gameName, intensity) }
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = intensity.name,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) intensityColor else SlateGray
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Dynamic launch options (RAM Boost and VPN)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    // RAM Boost toggle
+                                    val ramBoostEnabled = state.gameRamBoostEnabled[gameName] ?: false
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { viewModel.setGameRamBoost(gameName, !ramBoostEnabled) }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Checkbox(
+                                            checked = ramBoostEnabled,
+                                            onCheckedChange = { viewModel.setGameRamBoost(gameName, it) },
+                                            colors = CheckboxDefaults.colors(checkedColor = NeonCyan),
+                                            modifier = Modifier.size(24.dp).testTag("checkbox_ram_boost_${gameName.replace(" ", "_").lowercase()}")
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
+                                            Text(
+                                                text = "Boost RAM",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LightWhite
+                                            )
+                                            Text(
+                                                text = "Purge cache on run",
+                                                fontSize = 8.sp,
+                                                color = SlateGray
+                                            )
+                                        }
+                                    }
+
+                                    // VPN Toggle
+                                    val vpnEnabled = state.gameVpnEnabled[gameName] ?: false
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .weight(1.3f)
+                                            .clickable { viewModel.setGameVpn(gameName, !vpnEnabled) }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Checkbox(
+                                            checked = vpnEnabled,
+                                            onCheckedChange = { viewModel.setGameVpn(gameName, it) },
+                                            colors = CheckboxDefaults.colors(checkedColor = NeonCyan),
+                                            modifier = Modifier.size(24.dp).testTag("checkbox_vpn_${gameName.replace(" ", "_").lowercase()}")
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
+                                            Text(
+                                                text = "Gaming VPN",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LightWhite
+                                            )
+                                            Text(
+                                                text = "⚡ May increase ping",
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (vpnEnabled) HotRed else SlateGray
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (state.gameVpnEnabled[gameName] == true) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = HotRed.copy(alpha = 0.05f)),
+                                        border = BorderStroke(1.dp, HotRed.copy(alpha = 0.2f)),
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Warning,
+                                                contentDescription = "VPN Warning",
+                                                tint = HotRed,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Warning: Dynamic secure proxy routing active. Tunneling overhead MAY INCREASE PING but secures server connection.",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = HotRed
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Simulated Interceptions State display when active
+                    if (state.runningGame != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFE8F5E9))
+                                .border(1.dp, Color(0xFFC8E6C9), RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(NeonGreen)
+                                    )
+                                    Text(
+                                        text = "AUTOMATED OPTIMIZER ENGAGED",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 11.sp,
+                                        color = NeonGreen
+                                    )
+                                }
+
+                                Text(
+                                    text = "Workspace aligned. Telemetry indicates immediate network ping improvement & rock-solid FPS locked.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                AutomatedStatusMetricsRow(
+                                    label = "Background Service Suspension",
+                                    active = state.backgroundActivitiesDisabled,
+                                    activeText = "ACTIVE (Suspending background locks)"
+                                )
+                                AutomatedStatusMetricsRow(
+                                    label = "Notification Supression Matrix",
+                                    active = state.notificationsSuppressed,
+                                    activeText = "ACTIVE (Incoming banner blackhole)"
+                                )
+                                AutomatedStatusMetricsRow(
+                                    label = "Maximum Hardware Core Pinning",
+                                    active = state.cpuGpuAllocated,
+                                    activeText = "ACTIVE (GPU overclock frequency)"
+                                )
+                                AutomatedStatusMetricsRow(
+                                    label = "Kernel Input Jitter Minimization",
+                                    active = state.inputLagOptimized,
+                                    activeText = "ACTIVE (<1.0ms sync delay)"
+                                )
+                            }
+                        }
+                    }
+
+                    // Logs terminal
+                    if (state.gameModeLogs.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "DAEMON PROCESS EVENT LOGS",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = SlateGray
+                            )
+                            Text(
+                                text = "Clear Logs",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonCyan,
+                                modifier = Modifier.clickable { viewModel.clearGameLogs() }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1B1B1F))
+                                .padding(8.dp)
+                        ) {
+                            LazyColumn {
+                                items(state.gameModeLogs) { logLine ->
+                                    Text(
+                                        text = logLine,
+                                        color = if (logLine.contains("[WARNING]")) AlertOrange else if (logLine.contains("[DAEMON]")) NeonCyan else NeonGreen,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- AUTOMATED PERFORMANCE PROFILES SELECTOR ---
+        item {
+            Text(
+                text = "GAME BOOSTER POWER PROFILES",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightWhite
+            )
+        }
+
+        item {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ProfileSelectorCard(
+                    profileName = "Ultimate performance power plan",
+                    description = "Locks maximum raw hardware potential. GPU targeting limits overclocked to maximum (950MHz+), pins cores, minimizes input latency, and suspends system locks.",
+                    isSelected = state.selectedProfile == GameProfile.ULTIMATE_PERFORMANCE,
+                    color = Color(0xFF8E24AA),
+                    icon = Icons.Filled.Whatshot,
+                    onClick = { viewModel.setGameProfile(GameProfile.ULTIMATE_PERFORMANCE) },
+                    testTag = "prof_ultimate_performance"
+                )
+
+                ProfileSelectorCard(
+                    profileName = "Focus on performance",
+                    description = "Delivers peak clock speeds, locks high frame limits, triggers 120Hz/peak capabilities, and bypasses thermal thresholds.",
+                    isSelected = state.selectedProfile == GameProfile.PERFORMANCE,
+                    color = HotRed,
+                    icon = Icons.Filled.FlashOn,
+                    onClick = { viewModel.setGameProfile(GameProfile.PERFORMANCE) },
+                    testTag = "prof_performance"
+                )
+
+                ProfileSelectorCard(
+                    profileName = "System Balanced Mode",
+                    description = "Balanced scheduler designed to negotiate fluid gameplay and temperate battery temperatures seamlessly.",
+                    isSelected = state.selectedProfile == GameProfile.BALANCED,
+                    color = NeonCyan,
+                    icon = Icons.Filled.Speed,
+                    onClick = { viewModel.setGameProfile(GameProfile.BALANCED) },
+                    testTag = "prof_balanced"
+                )
+
+                ProfileSelectorCard(
+                    profileName = "Focus on power saving",
+                    description = "Locks refresh rate to 48Hz, enforces core cooling, suspends intensive graphics anti-aliasing, and limits thermal dissipation.",
+                    isSelected = state.selectedProfile == GameProfile.POWER_SAVING,
+                    color = AlertOrange,
+                    icon = Icons.Filled.Power,
+                    onClick = { viewModel.setGameProfile(GameProfile.POWER_SAVING) },
+                    testTag = "prof_power_saving"
+                )
+            }
+        }
+
+        // --- ADVANCED GAME BOOSTER PLUS SETTINGS ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "ADVANCED PLUGINS (GAME BOOSTER PLUS)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = NeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // GPU targets
+                    val maxGpuFreq = if (state.selectedProfile == GameProfile.ULTIMATE_PERFORMANCE) 950f else 900f
+                    Text(
+                        text = "Target GPU Clock (Vulkan / OpenGL): ${state.gpuFrequencyTarget.toInt()} MHz",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = LightWhite
+                    )
+                    Slider(
+                        value = state.gpuFrequencyTarget.coerceAtMost(maxGpuFreq),
+                        onValueChange = { viewModel.updateGpuTarget(it) },
+                        valueRange = 400f..950f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeonCyan,
+                            activeTrackColor = NeonCyan,
+                            inactiveTrackColor = Color(0xFFDEE3EB)
+                        )
+                    )
+
+                    // Texture resolution scale
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Texture Scale: ${state.textureScalePercent}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite
+                        )
+                        Text(
+                            text = if (state.textureScalePercent < 60) "High Performance Boost" else "Maximum Clarity",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.textureScalePercent < 60) NeonGreen else SlateGray
+                        )
+                    }
+                    Slider(
+                        value = state.textureScalePercent.toFloat(),
+                        onValueChange = { viewModel.updateTextureScale(it.toInt()) },
+                        valueRange = 50f..100f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeonCyan,
+                            activeTrackColor = NeonCyan,
+                            inactiveTrackColor = Color(0xFFDEE3EB)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Pre-transform Vulkan toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Vulkan Pre-Transform Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Offloads frame transform parameters from the central CPU pipeline directly to GPU hardware.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                        Switch(
+                            checked = state.preTransformEnabled,
+                            onCheckedChange = { viewModel.togglePreTransform(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Low Latency Mode Selector Row
+                    Text(
+                        text = "Low Latency Scheduling: On + Boost",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = LightWhite
+                    )
+                    Text(
+                        text = "Direct kernel scheduling to eliminate input registration delay.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LowLatencyMode.values().forEach { mode ->
+                            val isSelected = state.lowLatencyMode == mode
+                            val modeColor = when (mode) {
+                                LowLatencyMode.ON_BOOST -> HotRed
+                                LowLatencyMode.ON -> NeonCyan
+                                LowLatencyMode.OFF -> SlateGray
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) modeColor.copy(alpha = 0.15f) else Color.Transparent)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) modeColor else Color(0xFFDEE3EB),
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable { viewModel.setLowLatencyMode(mode) }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = when (mode) {
+                                            LowLatencyMode.ON_BOOST -> "ON + BOOST"
+                                            LowLatencyMode.ON -> "ON"
+                                            LowLatencyMode.OFF -> "OFF"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) modeColor else LightWhite
+                                    )
+                                    if (mode == LowLatencyMode.ON_BOOST) {
+                                        Text(
+                                            text = "Recommended",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 8.sp,
+                                            color = HotRed
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Allocated VRAM Slider (Up to 12G)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Dedicated VRAM Paging Plus: ${state.allocatedVramGb} GB",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Page dynamic system RAM into virtual allocated VRAM paging swap.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                    }
+                    Slider(
+                        value = state.allocatedVramGb.toFloat(),
+                        onValueChange = { viewModel.setAllocatedVram(it.toInt()) },
+                        valueRange = 2f..12f,
+                        steps = 4,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeonCyan,
+                            activeTrackColor = NeonCyan,
+                            inactiveTrackColor = Color(0xFFDEE3EB)
+                        )
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        listOf("2GB", "4GB", "6GB", "8GB", "12GB").forEach { label ->
+                            Text(text = label, fontSize = 9.sp, color = SlateGray, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // VSync Lock Recommend (OFF)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "Monitor V-Sync Lock",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(HotRed.copy(alpha = 0.15f))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text("RECOMMEND: OFF", fontSize = 8.sp, color = HotRed, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            Text(
+                                text = "Locks frames to vertical screen refreshes. Disable (OFF) to eliminate input lag and rendering frame delays.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                        Switch(
+                            checked = state.vSyncEnabled,
+                            onCheckedChange = { viewModel.setVSync(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Intense Game Auto RAM Cleaner
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Intense Game Auto RAM Cleaner",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Automatically purges temporary caches on intense load game starts to ensure maximum budget.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                        Switch(
+                            checked = state.autoRamCleanerEnabled,
+                            onCheckedChange = { viewModel.setAutoRamCleanerEnabled(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Manual RAM cleaner trigger button
+                    Button(
+                        onClick = { viewModel.cleanRamPools() },
+                        modifier = Modifier.fillMaxWidth().testTag("btn_clean_ram_plus"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CarbonCard,
+                            contentColor = NeonGreen
+                        ),
+                        border = BorderStroke(1.dp, NeonGreen),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Filled.Memory, contentDescription = "Clean RAM", tint = NeonGreen)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "⚡ TRIGGER MANUAL RAM SWEEP", fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                    }
+                }
+            }
+        }
+
+        // --- NEW IMPROVED PRO OPTIMIZATIONS (Sensi-Boost, DNS, Thermal Target, Low-latency Audio) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "NEW PRO GAME OPTIMIZATIONS (EXTENDED)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = NeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Customize system hardware controllers, touch digitizer drivers, low-level audio latency, and specialized DNS endpoints.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    )
+
+                    // 1. TOUCH SENSITIVITY (SENSI-BOOST)
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.TouchApp,
+                                contentDescription = "Touch Sensitivity",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Screen Touch Digitizer (Sensi-Boost)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+                        Text(
+                            text = "Overclocks display digitizer hardware interrupt response rate.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TouchSensitivity.values().forEach { level ->
+                                val isSelected = state.touchSensitivity == level
+                                val activeColor = when (level) {
+                                    TouchSensitivity.STANDARD -> NeonCyan
+                                    TouchSensitivity.HIGH_SENSITIVITY -> NeonGreen
+                                    TouchSensitivity.ULTRA_GAMING -> HotRed
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) activeColor.copy(alpha = 0.15f) else Color.Transparent)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) activeColor else Color(0xFFDEE3EB),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { viewModel.setTouchSensitivity(level) }
+                                        .padding(vertical = 8.dp)
+                                        .testTag("sensi_${level.name.lowercase()}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = when (level) {
+                                            TouchSensitivity.STANDARD -> "240Hz"
+                                            TouchSensitivity.HIGH_SENSITIVITY -> "480Hz"
+                                            TouchSensitivity.ULTRA_GAMING -> "720Hz"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) activeColor else LightWhite
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 2. DNS OPTIMIZER
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Dns,
+                                contentDescription = "Gaming DNS Selector",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "High-Velocity Gaming DNS Server",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+                        Text(
+                            text = "Bypasses standard regional DNS resolving bottlenecks to reduce ping lag.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DnsPreset.values().forEach { preset ->
+                                val isSelected = state.dnsPreset == preset
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) NeonCyan.copy(alpha = 0.15f) else Color.Transparent)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) NeonCyan else Color(0xFFDEE3EB),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { viewModel.setDnsPreset(preset) }
+                                        .padding(vertical = 8.dp)
+                                        .testTag("dns_${preset.name.lowercase()}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = when (preset) {
+                                            DnsPreset.DEFAULT -> "Default"
+                                            DnsPreset.CLOUDFLARE -> "Cloud1.1"
+                                            DnsPreset.GOOGLE_PUBLIC -> "Google"
+                                            DnsPreset.ADGUARD_SHIELD -> "AdGuard"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) NeonCyan else LightWhite
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 3. THERMAL LIMIT
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.FlashOn,
+                                contentDescription = "Thermal limits",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "CPU & GPU Thermal Overclock Target",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+                        Text(
+                            text = "Unshackles maximum hardware throttle boundaries to sustain frames longer.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ThermalLimit.values().forEach { limit ->
+                                val isSelected = state.thermalLimit == limit
+                                val activeColor = when (limit) {
+                                    ThermalLimit.CONSERVATIVE -> NeonGreen
+                                    ThermalLimit.OPTIMIZED -> NeonCyan
+                                    ThermalLimit.EXTREME_OVERCLOCK -> HotRed
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) activeColor.copy(alpha = 0.15f) else Color.Transparent)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) activeColor else Color(0xFFDEE3EB),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { viewModel.setThermalLimit(limit) }
+                                        .padding(vertical = 8.dp)
+                                        .testTag("thermal_${limit.name.lowercase()}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = when (limit) {
+                                            ThermalLimit.CONSERVATIVE -> "Cold"
+                                            ThermalLimit.OPTIMIZED -> "Balanced"
+                                            ThermalLimit.EXTREME_OVERCLOCK -> "Unlocked"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) activeColor else LightWhite
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 4. LOW-LATENCY AUDIO TETHER
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Hearing,
+                                contentDescription = "Audio Mode",
+                                tint = if (state.lowLatencyAudioEnabled) NeonCyan else SlateGray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.padding(end = 8.dp)) {
+                                Text(
+                                    text = "Ultra Low-Latency Audio Stream",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "Restructures kernel sound buffer to reduce audio feedback delay (45ms ➔ 12ms).",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = state.lowLatencyAudioEnabled,
+                            onCheckedChange = { viewModel.setLowLatencyAudio(it) },
+                            modifier = Modifier.testTag("switch_low_latency_audio"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 5. BLUETOOTH CONTROLLER LINK SPEED BOOST
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.BluetoothConnected,
+                                contentDescription = "Bluetooth Controller lag",
+                                tint = if (state.bluetoothControllerBoostEnabled) NeonCyan else SlateGray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.padding(end = 8.dp)) {
+                                Text(
+                                    text = "Supercharged Bluetooth Link Speed",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "Forces high priority HID controller polling (1000Hz boost) & 100ms link supervision timeout to eliminate gamepad lag.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = state.bluetoothControllerBoostEnabled,
+                            onCheckedChange = { viewModel.setBluetoothControllerBoost(it) },
+                            modifier = Modifier.testTag("switch_bluetooth_controller_boost"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonCyan,
+                                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB).copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 6. BLUETOOTH AUDIO ENGINE CODEC
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Bluetooth,
+                                contentDescription = "Bluetooth Audio Optimization",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Bluetooth Audio Low-Latency Driver",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+                        Text(
+                            text = "Overrides fallback SBC connection to force-activate advanced high-performance profiles with reduced wireless jitter.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BluetoothAudioOptimization.values().forEach { preset ->
+                                val isSelected = state.bluetoothAudioOptimization == preset
+                                val activeColor = when (preset) {
+                                    BluetoothAudioOptimization.STANDARD -> NeonCyan
+                                    BluetoothAudioOptimization.APT_X_ADAPTIVE -> NeonGreen
+                                    BluetoothAudioOptimization.LE_AUDIO_MIN_LATENCY -> HotRed
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) activeColor.copy(alpha = 0.15f) else Color.Transparent)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) activeColor else Color(0xFFDEE3EB),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { viewModel.setBluetoothAudioOptimization(preset) }
+                                        .padding(vertical = 8.dp)
+                                        .testTag("bluetooth_audio_${preset.name.lowercase()}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = when (preset) {
+                                            BluetoothAudioOptimization.STANDARD -> "SBC Std"
+                                            BluetoothAudioOptimization.APT_X_ADAPTIVE -> "aptX/LDAC"
+                                            BluetoothAudioOptimization.LE_AUDIO_MIN_LATENCY -> "LE Audio"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) activeColor else LightWhite
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- BLOCK IN-GAME INTERRUPTIONS (POPUP PANEL SIMULATOR) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "IN-GAME SUPPRESS HUD",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = LightWhite
+                    )
+                    Text(
+                        text = "Prevent physical distractions and accidental gesture overlays from ruining game loops.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    NotificationBlockToggle(
+                        label = "Suppress Notification Banners",
+                        description = "Blocks messaging popups and call signals entirely.",
+                        checked = state.blockNotifications,
+                        onCheckedChange = { viewModel.setBlockNotifications(it) },
+                        icon = Icons.Outlined.NotificationsOff
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    NotificationBlockToggle(
+                        label = "Secure Gesture Edge Panel Blocks",
+                        description = "Disables system navigation and edge drawers on first swipe.",
+                        checked = state.lockCapacitiveButtons,
+                        onCheckedChange = { viewModel.setLockCapacitiveButtons(it) },
+                        icon = Icons.Outlined.Block
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = Color(0xFFDEE3EB))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "FLOATING UTILITY OVERLAYS",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = LightWhite
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        FloatingLauncherPill(
+                            label = "Game Console",
+                            isActive = state.activeFloatingApp == "Game Console",
+                            onClick = { viewModel.toggleFloatingApp("Game Console") }
+                        )
+
+                        FloatingLauncherPill(
+                            label = "Apex Chat Overlay",
+                            isActive = state.activeFloatingApp == "Apex Chat Overlay",
+                            onClick = { viewModel.toggleFloatingApp("Apex Chat Overlay") }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationBlockToggle(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (checked) NeonCyan else SlateGray,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = LightWhite
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = SlateGray
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = NeonCyan,
+                checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                uncheckedThumbColor = SlateGray,
+                uncheckedTrackColor = Color.Black
+            )
+        )
+    }
+}
+
+@Composable
+fun FloatingLauncherPill(
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .border(
+                1.dp,
+                if (isActive) NeonCyan else SlateGray.copy(alpha = 0.3f),
+                RoundedCornerShape(20.dp)
+            )
+            .background(if (isActive) NeonCyan.copy(alpha = 0.15f) else Color.Transparent)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Launch,
+                contentDescription = label,
+                tint = if (isActive) NeonCyan else SlateGray,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                color = if (isActive) NeonCyan else LightWhite,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun ProfileSelectorCard(
+    profileName: String,
+    description: String,
+    isSelected: Boolean,
+    color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    testTag: String
+) {
+    Card(
+        modifier = Modifier
+            .testTag(testTag)
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) color.copy(alpha = 0.12f) else CarbonCard
+        ),
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) color else Color(0xFFDEE3EB)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) color else Color(0xFFDDE2F1)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = profileName,
+                    tint = if (isSelected) Color.White else color,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = profileName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) color else LightWhite
+                    )
+                    if (isSelected) {
+                        Text(
+                            text = "ACTIVE",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Black,
+                            color = color,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SlateGray,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+
+// ==========================================
+// --- DEV TWEAKS (GUIDES & HOST PC SHIELDS) ---
+// ==========================================
+
+@Composable
+fun DevTweaksTabContent(
+    state: TunerUiState,
+    viewModel: TunerViewModel,
+    isTablet: Boolean
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // --- 1. SYSTEM GRAPHICS DRIVER CONFIG (GUIDE + SWITCH) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.1f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.GraphicEq,
+                                contentDescription = "Graphics configuration",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Graphics Driver Tweak",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+
+                        Switch(
+                            checked = state.systemGraphicsDriverSet,
+                            onCheckedChange = { viewModel.toggleGraphicsDriverSetting() },
+                            modifier = Modifier.testTag("switch_graphics_driver"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Forces the system to bypass generic translation wrappers and pipe your game loops directly into native GPU hardware microcode.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF0F4FF))
+                            .padding(12.dp)
+                            .border(1.dp, Color(0xFFC3C6CF), RoundedCornerShape(4.dp))
+                    ) {
+                        Column {
+                            Text(
+                                text = "HOW TO ENABLE NATIVELY:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Black,
+                                color = NeonCyan,
+                                fontSize = 10.sp,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "1. Launch Developer Options under System Details.\n" +
+                                        "2. Locate 'Graphics Driver Preferences' or 'Game Driver'.\n" +
+                                        "3. Find your specific target game and select 'System Graphics Driver'.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                lineHeight = 16.sp,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 2. PEAK REFRESH RATE (HIGHLIGHT SPEED) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Peak refresh rate",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Force Peak Refresh Rate",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                               )
+                                Text(
+                                    text = if (state.forcePeakRefreshRate) "Locked at 120Hz/Peak output" else "Adaptive system pooling",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (state.forcePeakRefreshRate) NeonGreen else SlateGray
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = state.forcePeakRefreshRate,
+                            onCheckedChange = { viewModel.togglePeakRefreshRate() },
+                            modifier = Modifier.testTag("switch_peak_refresh"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Disables active frame polling, locking the display to the hardware highest response limit (90Hz / 120Hz / 144Hz) to eliminate micro-stutters completely.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray
+                    )
+                }
+            }
+        }
+
+        // --- 3. HARDWARE DEBLOATER / HONE DESKTOP DEBLOAT SIM ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "HONE MOBILITY OPTIMIZER INTERFACE",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = NeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Automated portal implementing telemetry blocking and network package optimization on standard devices to eliminate frame loss.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
+                    )
+
+                    HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(bottom = 14.dp))
+
+                    // Debloater Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Bypass OS Telemetry Daemons",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = if (state.telemetryDebloated) {
+                                    "Blocked standard analytics reporting. CPU cycles saved."
+                                } else {
+                                    "OS Background reporting pinging locations weekly."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (state.telemetryDebloated) NeonGreen else SlateGray
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.toggleTelemetryDebloater() },
+                            modifier = Modifier.testTag("btn_debloater"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state.telemetryDebloated) NeonGreen.copy(alpha = 0.15f) else CarbonCard,
+                                contentColor = if (state.telemetryDebloated) NeonGreen else NeonCyan
+                            ),
+                            border = BorderStroke(1.dp, if (state.telemetryDebloated) NeonGreen else NeonCyan),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(if (state.telemetryDebloated) "SHIELDED" else "DEBLOAT")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // SSD / TRIM Sector
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Execute Flash TRIM / Sector Optimization",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "Reclaims SSD block configurations. Recommended once weekly.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+
+                            Button(
+                                onClick = { viewModel.runSsdTrim() },
+                                enabled = !state.ssdTrimActive,
+                                modifier = Modifier.testTag("btn_ssd_trim"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NeonCyan,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("TRIM NOW", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (state.ssdTrimActive) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { state.ssdTrimProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp),
+                                color = NeonCyan,
+                                trackColor = Color(0xFFDEE3EB)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// ==========================================
+// --- REUSABLE CUSTOM DRAW COMPONENT ----
+// ==========================================
+
+@Composable
+fun PerformanceDial(
+    score: Int,
+    size: Dp,
+    state: TunerUiState
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "RadarPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseAlpha"
+    )
+
+    val sweepAngle = (score / 100f) * 280f
+    val dialColor = when {
+        score > 85 -> NeonGreen
+        score > 65 -> NeonCyan
+        else -> AlertOrange
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .padding(10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Glowing Canvas
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 14.dp.toPx()
+            val arcSize = Size(size.toPx() - strokeWidth * 2, size.toPx() - strokeWidth * 2)
+            val topLeft = Offset(strokeWidth, strokeWidth)
+
+            // 1. Draw Background Track Arc
+            drawArc(
+                color = Color(0xFFC3C6CF),
+                startAngle = 130f,
+                sweepAngle = 280f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth + 2f, cap = StrokeCap.Round)
+            )
+
+            // 2. Draw Active Gauge Arc
+            drawArc(
+                color = dialColor,
+                startAngle = 130f,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+
+            // 3. Draw a floating subtle pulsing core dot
+            drawCircle(
+                color = dialColor.copy(alpha = 0.15f * pulseAlpha),
+                radius = size.toPx() / 3f,
+                center = center
+            )
+        }
+
+        // Concentric Core Counter Info
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "$score",
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Black,
+                color = LightWhite,
+                letterSpacing = (-1).sp
+            )
+            Text(
+                text = if (state.isClearing) "TUNING..." else if (score > 85) "LOCKED" else "TUNE",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = dialColor,
+                letterSpacing = 1.5.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun TelemetryCircularNode(
+    label: String,
+    value: String,
+    accentColor: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.padding(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFF0F4FF))
+                .border(1.dp, accentColor.copy(alpha = 0.4f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Black,
+            color = LightWhite
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = SlateGray,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@Composable
+fun TelemetryItemCard(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F4F9)),
+        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    color = SlateGray,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = value,
+                    fontSize = 14.sp,
+                    color = LightWhite,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// ==========================================
+// --- SIMULATED IN-GAME FLOATING POPUP PANEL ---
+// ==========================================
+
+@Composable
+fun FloatingAppSimulator(
+    appName: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .border(2.dp, NeonCyan, RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = CarbonCard),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Launch,
+                            contentDescription = "Active floating node",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = appName.uppercase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = NeonCyan,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Dismiss app",
+                            tint = SlateGray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                when (appName) {
+                    "Game Console" -> {
+                        Text(
+                            text = "APEX HARDWARE THREAD SCHEDULER",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = LightWhite
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .background(Color(0xFF1B1B1F))
+                                .padding(8.dp)
+                        ) {
+                            LazyColumn {
+                                item { Text("[INFO] DirectGPU scheduler online.", color = NeonGreen, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
+                                item { Text("[INFO] Vulkan Pre-transform bound to Thread #2.", color = NeonCyan, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
+                                item { Text("[DAEMON] Cooling system loop set to maximum frequency.", color = AlertOrange, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
+                                item { Text("[SCHEDULER] Foreground game prioritization activated successfully.", color = NeonGreen, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
+                            }
+                        }
+                    }
+                    "Apex Chat Overlay" -> {
+                        Text(
+                            text = "Active Teams Speak Channel",
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ChatMessageRow(sender = "ApexBoss", msg = "Let's capture target sector A4!", stamp = "Just now")
+                            ChatMessageRow(sender = "SpeedRunner", msg = "Graphics driver system is running insanely fast on 120Hz", stamp = "2m ago")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                ) {
+                    Text("CLOSE FLOATING OVERLAY", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageRow(sender: String, msg: String, stamp: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF3F4F9))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(NeonCyan),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = sender.first().toString(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = Color.White
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text(text = sender, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                Text(text = stamp, fontSize = 9.sp, color = SlateGray)
+            }
+            Text(text = msg, fontSize = 11.sp, color = LightWhite)
+        }
+    }
+}
