@@ -30,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -66,8 +67,11 @@ val SlateGray = Color(0xFF44474E) // Text color for subheadings/details
 val LightWhite = Color(0xFF1B1B1F) // The main text color (high contrast dark grey)
 
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: TunerViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = androidx.lifecycle.ViewModelProvider(this)[TunerViewModel::class.java]
         enableEdgeToEdge()
         setContent {
             ApexTunerDarkTheme {
@@ -77,11 +81,18 @@ class MainActivity : ComponentActivity() {
                         .background(ObsidianBg)
                 ) { innerPadding ->
                     TunerDashboardScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        viewModel = viewModel
                     )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val canWrite = android.provider.Settings.System.canWrite(this)
+        viewModel.updateWriteSettingsPermissionStatus(canWrite)
     }
 }
 
@@ -633,6 +644,922 @@ fun TuneUpTabContent(
             }
         }
 
+        // --- LAG KILLER KERNEL MODULE ---
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_lag_killer_tweaks"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, if (state.lagKillerEnabled) NeonGreen.copy(alpha = 0.5f) else NeonCyan.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Bolt,
+                                contentDescription = "Lag Killer Speed Boost",
+                                tint = if (state.lagKillerEnabled) NeonGreen else NeonCyan,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "LAG KILLER TUNING DAEMON",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = LightWhite,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (state.lagKillerEnabled) "ACTIVE — LATENCY OPTIMIZATION ON" else "OFF — Tap to engage kernel tweaks",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (state.lagKillerEnabled) NeonGreen else SlateGray
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = state.lagKillerEnabled,
+                            onCheckedChange = { viewModel.toggleLagKiller() },
+                            enabled = !state.isApplyingLagKiller,
+                            modifier = Modifier.testTag("switch_lag_killer"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    Text(
+                        text = "Configures advanced Android performance parameters automatically, optimizing core components (Touch, Bluetooth Polling, Display Sync pacing, and low-latency modes) in a single action to eliminate jitter.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    AnimatedVisibility(visible = state.isApplyingLagKiller) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = state.lagKillerStatus,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonCyan
+                                )
+                                Text(
+                                    text = "${(state.lagKillerProgress * 100).toInt()}%",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = NeonCyan
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = { state.lagKillerProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp),
+                                color = NeonCyan,
+                                trackColor = Color(0xFFDEE3EB)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Sub-tweaks list layout
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ObsidianBg, RoundedCornerShape(6.dp))
+                            .border(BorderStroke(1.dp, Color(0xFFDEE3EB)), RoundedCornerShape(6.dp))
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            text = "AUTOMATED CONFIGURATION CHANGES:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonCyan,
+                            fontSize = 9.sp,
+                            letterSpacing = 0.5.sp
+                        )
+
+                        LagSubTweakRow(
+                            label = "Kernel Touch Sample Polling (360Hz Sampling Rate)",
+                            active = state.lagKillerEnabled && state.touchSensitivity == TouchSensitivity.ULTRA_GAMING
+                        )
+                        LagSubTweakRow(
+                            label = "Zero Latency Frame Pipeline (Bypass V-Sync buffers)",
+                            active = state.lagKillerEnabled && !state.vSyncEnabled
+                        )
+                        LagSubTweakRow(
+                            label = "1000Hz Gamepad Input HID Priority (Controller polling boost)",
+                            active = state.lagKillerEnabled && state.bluetoothControllerBoostEnabled
+                        )
+                        LagSubTweakRow(
+                            label = "Ultra-Low-Jitter Audio Pipeline (<15ms Delay profile)",
+                            active = state.lagKillerEnabled && state.lowLatencyAudioEnabled
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- RAM PROCESS CLEANER MODULE ---
+        item {
+            val totalSelectedMb = state.activeBackgroundProcesses.filter { it.isSelected && it.status == "Active" }.sumOf { it.ramCostMb }
+            val selectedCount = state.activeBackgroundProcesses.count { it.isSelected && it.status == "Active" }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_ram_process_cleaner"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Memory,
+                            contentDescription = "RAM Optimizer Kernel",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "RAM DAEMON PROCESS CLEANER",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = LightWhite,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Text(
+                        text = "Scan and surgically terminate active memory leaks and running daemon background processes to reclaim immediate hardware responsiveness.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                    )
+
+                    if (!state.ramProcessesScanned && !state.isScanningRamProcesses) {
+                        // --- STATE: NOT SCANNED & NOT SCANNING ---
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ObsidianBg, RoundedCornerShape(8.dp))
+                                .border(BorderStroke(1.dp, Color(0xFF6A7F93).copy(alpha = 0.2f)), RoundedCornerShape(8.dp))
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Filled.Build,
+                                    contentDescription = "Needs analysis",
+                                    tint = SlateGray,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "System RAM Analysis Required",
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "Deep scan background allocations to detect optimization scopes.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { viewModel.scanBackgroundProcesses() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.height(36.dp).testTag("btn_ram_scan_init")
+                                ) {
+                                    Text("INITIATE AGENT SCAN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    } else if (state.isScanningRamProcesses) {
+                        // --- STATE: SCANNING ---
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ObsidianBg, RoundedCornerShape(8.dp))
+                                .border(BorderStroke(1.dp, NeonCyan.copy(alpha = 0.2f)), RoundedCornerShape(8.dp))
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = NeonCyan,
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = state.clearStatus,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = LightWhite,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Mapping PID ranges & tracking cached chunks...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    } else {
+                        // --- STATE: SCANNED / RESULTS AVAILABLE ---
+                        Column {
+                            // Header / stats bar
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(ObsidianBg, RoundedCornerShape(4.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "SCAN RESULTS: ${state.activeBackgroundProcesses.count { it.status == "Active" }} ALIVE",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AlertOrange,
+                                    fontSize = 10.sp
+                                )
+                                
+                                Text(
+                                    text = "CONSUMING: ${state.activeBackgroundProcesses.filter { it.status == "Active" }.sumOf { it.ramCostMb }} MB",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite,
+                                    fontSize = 10.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // List of background processes
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                state.activeBackgroundProcesses.forEach { item ->
+                                    val isCleared = item.status == "Cleared"
+                                    val isSweeping = item.status == "Sweeping"
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(if (isCleared) NeonGreen.copy(alpha = 0.05f) else ObsidianBg)
+                                            .border(
+                                                BorderStroke(
+                                                    1.dp,
+                                                    if (isCleared) NeonGreen.copy(alpha = 0.15f)
+                                                    else if (isSweeping) AlertOrange.copy(alpha = 0.3f)
+                                                    else Color(0xFF6A7F93).copy(alpha = 0.15f)
+                                                ),
+                                                RoundedCornerShape(6.dp)
+                                            )
+                                            .padding(vertical = 8.dp, horizontal = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Checkbox for selection (only if process is active)
+                                        if (item.status == "Active") {
+                                            Checkbox(
+                                                checked = item.isSelected,
+                                                onCheckedChange = { viewModel.toggleProcessSelection(item.packageName) },
+                                                colors = CheckboxDefaults.colors(
+                                                    checkedColor = NeonCyan,
+                                                    uncheckedColor = SlateGray
+                                                ),
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .scale(0.85f)
+                                                    .testTag("checkbox_proc_${item.packageName}")
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                        } else {
+                                            // Status mark
+                                            Box(
+                                                modifier = Modifier.size(24.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (isCleared) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.CheckCircle,
+                                                        contentDescription = "Cleared",
+                                                        tint = NeonGreen,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                } else {
+                                                    CircularProgressIndicator(
+                                                        color = AlertOrange,
+                                                        strokeWidth = 2.dp,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                        }
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = item.name,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                color = if (isCleared) SlateGray else LightWhite
+                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = item.packageName,
+                                                    color = SlateGray,
+                                                    fontSize = 9.sp
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            if (isCleared) SlateGray.copy(alpha = 0.1f) else NeonCyan.copy(alpha = 0.1f),
+                                                            RoundedCornerShape(5.dp)
+                                                        )
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                ) {
+                                                    Text(
+                                                        text = item.category,
+                                                        fontSize = 8.sp,
+                                                        color = if (isCleared) SlateGray else NeonCyan,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Text(
+                                            text = "${item.ramCostMb} MB",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (isCleared) SlateGray else if (isSweeping) AlertOrange else NeonCyan
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // One-Tap Clear Action Section
+                            if (state.isCleaningRamProcesses) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = NeonCyan,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = state.clearStatus,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = NeonCyan,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.clearSelectedMemory() },
+                                        enabled = selectedCount > 0,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = NeonCyan,
+                                            contentColor = Color.White,
+                                            disabledContainerColor = Color(0xFF6A7F93).copy(alpha = 0.2f)
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier
+                                            .weight(1.5f)
+                                            .height(36.dp)
+                                            .testTag("btn_ram_clear_selected")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.FlashOn,
+                                            contentDescription = "Flash Sweep",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = if (selectedCount > 0) "ONE-TAP CLEAR (${String.format("%.2f", totalSelectedMb / 1024.0)} GB)" else "SELECT PROCESSES",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.scanBackgroundProcesses() },
+                                        colors = ButtonDefaults.buttonColors(containerColor = CarbonCard),
+                                        border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(36.dp)
+                                            .testTag("btn_ram_rescan")
+                                    ) {
+                                        Text(
+                                            text = "RUN RE-SCAN",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = NeonCyan
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- PERFORMANCE DEGRADATION THREAT DETECTOR (5 CULPRITS) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_performance_threat_watch"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, AlertOrange.copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = "Threat Warning",
+                            tint = AlertOrange,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = "PERFORMANCE BOTTLENECK WATCHLIST",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = LightWhite,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Text(
+                        text = "Identify, simulate, and resolve the five critical hardware & software degraders affecting live frame-rendering speed.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    )
+
+                    // CULPRIT 1: Thermal Throttling
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.WbSunny,
+                                        contentDescription = "Thermal icon",
+                                        tint = if (state.coolingTempCelsius > 42) HotRed else if (state.coolingTempCelsius > 38) AlertOrange else NeonGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "1. THERMAL THROTTLING & HEAT",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.coolingTempCelsius > 42) HotRed.copy(alpha = 0.15f)
+                                            else if (state.coolingTempCelsius > 38) AlertOrange.copy(alpha = 0.15f)
+                                            else NeonGreen.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.coolingTempCelsius > 42) "THROTTLING RANGE"
+                                               else if (state.coolingTempCelsius > 38) "MODERATE HEAT"
+                                               else "OPTIMAL THERMALS",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp,
+                                        color = if (state.coolingTempCelsius > 42) HotRed
+                                               else if (state.coolingTempCelsius > 38) AlertOrange
+                                               else NeonGreen
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Phone core temperature is ${state.coolingTempCelsius}°C. Intense 3D computations cause structural throttling.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = SlateGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            // Thermal Limit Selector controls inside
+                            Text(
+                                text = "Adjust CPU dynamic throttle safety limits:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                              ) {
+                                  ThermalLimit.values().forEach { limit ->
+                                      val isSelected = state.thermalLimit == limit
+                                      Button(
+                                          onClick = { viewModel.setThermalLimit(limit) },
+                                          modifier = Modifier.weight(1f).height(32.dp),
+                                          colors = ButtonDefaults.buttonColors(
+                                              containerColor = if (isSelected) NeonCyan else Color.White,
+                                              contentColor = if (isSelected) Color.White else SlateGray
+                                          ),
+                                          border = if (!isSelected) BorderStroke(1.dp, Color(0xFFDEE3EB)) else null,
+                                          contentPadding = PaddingValues(0.dp)
+                                      ) {
+                                          Text(
+                                              text = when (limit) {
+                                                  ThermalLimit.CONSERVATIVE -> "Cold Mode"
+                                                  ThermalLimit.OPTIMIZED -> "Balanced"
+                                                  ThermalLimit.EXTREME_OVERCLOCK -> "Overclock"
+                                              },
+                                              fontSize = 9.sp,
+                                              fontWeight = FontWeight.Bold
+                                          )
+                                      }
+                                  }
+                              }
+                        }
+                    }
+
+                    // CULPRIT 2: Background Apps & Clutter
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Memory,
+                                        contentDescription = "Ram icon",
+                                        tint = if (state.ramUsedPercent > 80) AlertOrange else NeonGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "2. BACKGROUND APPS & CLUTTER",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.ramUsedPercent > 80) AlertOrange.copy(alpha = 0.15f)
+                                            else NeonGreen.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.ramUsedPercent > 80) "HIGH CONGESTION" else "HEALTHY BUFFER",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp,
+                                        color = if (state.ramUsedPercent > 80) AlertOrange else NeonGreen
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "RAM blocks are ${state.ramUsedPercent}% occupied. Background services consume valuable CPU cycles.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = SlateGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = { viewModel.triggerSystemOptimization() },
+                                modifier = Modifier.fillMaxWidth().height(36.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NeonCyan,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.FlashOn,
+                                    contentDescription = "Sweep Blockers",
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("PURGE BACKGROUND CPU RUNTIME", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // CULPRIT 3: Power-Saving Modes
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Power,
+                                        contentDescription = "Battery alert",
+                                        tint = if (state.batterySaverRestricting) HotRed else SlateGray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "3. SYSTEM POWER-SAVING MODES",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.batterySaverRestricting) HotRed.copy(alpha = 0.15f)
+                                            else NeonGreen.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.batterySaverRestricting) "HEAVY CORE THROTTLE" else "UNRESTRICTED CLOCKS",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp,
+                                        color = if (state.batterySaverRestricting) HotRed else NeonGreen
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Battery saver constraints limit CPU/GPU clock rate down to 50%, initiating intense frame stutter.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = SlateGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Simulate Battery Saver constraint:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = LightWhite,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Switch(
+                                    checked = state.batterySaverRestricting,
+                                    onCheckedChange = { viewModel.toggleBatterySaverRestricting() },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = HotRed,
+                                        checkedTrackColor = HotRed.copy(alpha = 0.3f),
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFFDEE3EB)
+                                    ),
+                                    modifier = Modifier.scale(0.8f).testTag("switch_battery_saver_test")
+                                )
+                            }
+                        }
+                    }
+
+                    // CULPRIT 4: Charging While Playing
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Bolt,
+                                        contentDescription = "Charge icon",
+                                        tint = if (state.simulatedChargingEnabled) HotRed else NeonGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "4. CHARGING WHILE PLAYING",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.simulatedChargingEnabled) HotRed.copy(alpha = 0.15f)
+                                            else NeonGreen.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.simulatedChargingEnabled) "EXCESSIVE HEAT ALERT" else "STABLE CURRENT FLOW",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp,
+                                        color = if (state.simulatedChargingEnabled) HotRed else NeonGreen
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Plugging your device in while gaming flows thermal heat into lithium layers, forcing severe auto-throttling.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = SlateGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Simulate AC Charger input (heat source):",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = LightWhite,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Switch(
+                                    checked = state.simulatedChargingEnabled,
+                                    onCheckedChange = { viewModel.toggleSimulatedCharging() },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = AlertOrange,
+                                        checkedTrackColor = AlertOrange.copy(alpha = 0.3f),
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFFDEE3EB)
+                                    ),
+                                    modifier = Modifier.scale(0.8f).testTag("switch_charger_sim_test")
+                                )
+                            }
+                        }
+                    }
+
+                    // CULPRIT 5: Unoptimized In-Game settings
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                        border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Settings,
+                                        contentDescription = "Settings icon",
+                                        tint = if (state.inGameSettingsOptimized) NeonGreen else AlertOrange,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "5. UNOPTIMIZED IN-GAME SETTINGS",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.inGameSettingsOptimized) NeonGreen.copy(alpha = 0.15f)
+                                            else AlertOrange.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.inGameSettingsOptimized) "GAME PROFILE STABLE" else "GPU SPENDING EXCESSIVE",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp,
+                                        color = if (state.inGameSettingsOptimized) NeonGreen else AlertOrange
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Maxing out textures, graphics, and FPS benchmarks on intensive workloads triggers buffer/GPU overhead overruns.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = SlateGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Button(
+                                onClick = { viewModel.toggleInGameSettingsOptimized() },
+                                modifier = Modifier.fillMaxWidth().height(36.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (state.inGameSettingsOptimized) NeonGreen else NeonCyan,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (state.inGameSettingsOptimized) Icons.Filled.CheckCircle else Icons.Filled.Build,
+                                    contentDescription = "Apply Preset",
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (state.inGameSettingsOptimized) "ACTIVE: STABLE CAP PROFILE ENGAGED" else "ENGAGE STABLE RENDERING CAPS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // --- HARDWARE TELEMETRY INDIVIDUAL CONTROLS ---
         item {
             HardwareMonitorRow(state = state, viewModel = viewModel)
@@ -1087,6 +2014,32 @@ fun AutomatedStatusMetricsRow(
         Text(
             text = if (active) activeText else "Inactive / Default",
             fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (active) NeonGreen else SlateGray
+        )
+    }
+}
+
+
+@Composable
+fun LagSubTweakRow(
+    label: String,
+    active: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = if (active) LightWhite else SlateGray,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = if (active) "ENGAGED" else "DEFAULT",
+            fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             color = if (active) NeonGreen else SlateGray
         )

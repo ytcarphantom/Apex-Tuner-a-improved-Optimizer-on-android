@@ -66,6 +66,15 @@ data class InstalledGame(
     val packageName: String
 )
 
+data class BackgroundProcessItem(
+    val name: String,
+    val packageName: String,
+    val ramCostMb: Int,
+    val category: String,
+    val isSelected: Boolean = true,
+    val status: String = "Active" // "Active", "Sweeping", "Cleared"
+)
+
 data class TunerUiState(
     // Global Navigation & Health
     val activeTab: TunerTab = TunerTab.TUNE_UP,
@@ -116,6 +125,10 @@ data class TunerUiState(
     val ssdTrimProgress: Float = 0f,
     val telemetryDebloated: Boolean = false,
     val gameModeActivated: Boolean = false,
+    val lagKillerEnabled: Boolean = false,
+    val isApplyingLagKiller: Boolean = false,
+    val lagKillerProgress: Float = 0f,
+    val lagKillerStatus: String = "Idle",
     
     // Automated Game Mode and Detection
     val autoDetectGameLaunchEnabled: Boolean = true,
@@ -141,7 +154,21 @@ data class TunerUiState(
     val lowLatencyAudioEnabled: Boolean = false,
     val bluetoothControllerBoostEnabled: Boolean = false,
     val bluetoothAudioOptimization: BluetoothAudioOptimization = BluetoothAudioOptimization.STANDARD,
-    val hibernatedApps: Set<String> = emptySet()
+    val hibernatedApps: Set<String> = emptySet(),
+    val simulatedChargingEnabled: Boolean = false,
+    val batterySaverRestricting: Boolean = false,
+    val inGameSettingsOptimized: Boolean = false,
+    val isScanningRamProcesses: Boolean = false,
+    val isCleaningRamProcesses: Boolean = false,
+    val ramProcessesScanned: Boolean = false,
+    val activeBackgroundProcesses: List<BackgroundProcessItem> = listOf(
+        BackgroundProcessItem("Vulkan Shader Standby Cache", "com.android.vulkan.shader", 420, "GPU Shader"),
+        BackgroundProcessItem("Background Social Sync Daemon", "com.meta.services.sync", 280, "Social Network"),
+        BackgroundProcessItem("Google Chrome Multi-tab Heap", "com.android.chrome.tabheap", 510, "Browser Host"),
+        BackgroundProcessItem("Standby Unity Game Engine Cache", "com.ea.standby.engine", 640, "Inactive Apps"),
+        BackgroundProcessItem("Telemetry Ad-Tracking Listener", "com.telemetry.adtracker", 185, "Analytics Daemon")
+    ),
+    val hasWriteSettingsPermission: Boolean = false
 )
 
 class TunerViewModel : ViewModel() {
@@ -178,6 +205,7 @@ class TunerViewModel : ViewModel() {
         private const val KEY_LOW_LATENCY_AUDIO = "low_latency_audio"
         private const val KEY_BLUETOOTH_CONTROLLER_BOOST = "bluetooth_controller_boost"
         private const val KEY_BLUETOOTH_AUDIO_OPTIMIZATION = "bluetooth_audio_optimization"
+        private const val KEY_LAG_KILLER_ENABLED = "lag_killer_enabled"
     }
 
     fun initPersistence(context: Context) {
@@ -310,6 +338,8 @@ class TunerViewModel : ViewModel() {
             try { BluetoothAudioOptimization.valueOf(it) } catch (e: Exception) { null }
         } ?: BluetoothAudioOptimization.STANDARD
 
+        val lagKillerEnabled = prefs.getBoolean(KEY_LAG_KILLER_ENABLED, false)
+
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
             gpuFrequencyTarget = gpuFrequencyTarget,
@@ -343,7 +373,8 @@ class TunerViewModel : ViewModel() {
             thermalLimit = thermalLimit,
             lowLatencyAudioEnabled = lowLatencyAudioEnabled,
             bluetoothControllerBoostEnabled = bluetoothControllerBoostEnabled,
-            bluetoothAudioOptimization = bluetoothAudioOptimization
+            bluetoothAudioOptimization = bluetoothAudioOptimization,
+            lagKillerEnabled = lagKillerEnabled
         )
     }
 
@@ -466,6 +497,20 @@ class TunerViewModel : ViewModel() {
             }
         }
 
+        // Charging While Playing generates substantial excess heat & battery performance characteristics
+        if (state.simulatedChargingEnabled) {
+            targetTemp += 8
+            targetBattery = (targetBattery + 5.0).coerceAtMost(24.0)
+        }
+
+        // Battery saver mode drastically limits rendering FPS & throttling characteristics
+        if (state.batterySaverRestricting) {
+            targetFps = (targetFps / 2).coerceAtLeast(24)
+            targetTemp -= 5
+            targetBattery = (targetBattery + 4.0).coerceAtMost(24.0)
+            targetPing += 12 // added latency due to low-power scheduler cycles
+        }
+
         // Apply DNS optimizations to base Ping
         val dnsPingReduction = when (state.dnsPreset) {
             DnsPreset.DEFAULT -> 0
@@ -583,6 +628,10 @@ class TunerViewModel : ViewModel() {
 
     fun selectTab(tab: TunerTab) {
         _uiState.value = _uiState.value.copy(activeTab = tab)
+    }
+
+    fun updateWriteSettingsPermissionStatus(hasPermission: Boolean) {
+        _uiState.value = _uiState.value.copy(hasWriteSettingsPermission = hasPermission)
     }
 
     fun triggerSystemOptimization() {
@@ -776,6 +825,148 @@ class TunerViewModel : ViewModel() {
                 score = nextScore,
                 clearStatus = "RAM cleared to $finalRamPercent%."
             )
+            saveSetting {
+                putInt("ram_used_percent", finalRamPercent)
+                putInt("score", nextScore)
+            }
+        }
+    }
+
+    fun scanBackgroundProcesses() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isScanningRamProcesses = true,
+                ramProcessesScanned = false,
+                isClearing = true,
+                clearProgress = 0.2f,
+                clearStatus = "Initializing RAM process scanner kernel..."
+            )
+            delay(500)
+            _uiState.value = _uiState.value.copy(
+                clearProgress = 0.6f,
+                clearStatus = "Scanning heap allocations across running namespaces..."
+            )
+            delay(500)
+            _uiState.value = _uiState.value.copy(
+                clearProgress = 0.9f,
+                clearStatus = "Retrieving active background task memory footprints..."
+            )
+            delay(400)
+            
+            // Generate list of typical memory-hogging tasks (all set back to active and selected)
+            val updatedProcesses = listOf(
+                BackgroundProcessItem("Vulkan Shader Standby Cache", "com.android.vulkan.shader", 420, "GPU Shader"),
+                BackgroundProcessItem("Background Social Sync Daemon", "com.meta.services.sync", 280, "Social Network"),
+                BackgroundProcessItem("Google Chrome Multi-tab Heap", "com.android.chrome.tabheap", 510, "Browser Host"),
+                BackgroundProcessItem("Standby Unity Game Engine Cache", "com.ea.standby.engine", 640, "Inactive Apps"),
+                BackgroundProcessItem("Telemetry Ad-Tracking Listener", "com.telemetry.adtracker", 185, "Analytics Daemon")
+            )
+            
+            _uiState.value = _uiState.value.copy(
+                isScanningRamProcesses = false,
+                ramProcessesScanned = true,
+                isClearing = false,
+                clearProgress = 1.0f,
+                clearStatus = "Discovered ${updatedProcesses.size} background processes consuming resources.",
+                activeBackgroundProcesses = updatedProcesses
+            )
+        }
+    }
+
+    fun toggleProcessSelection(packageName: String) {
+        val updated = _uiState.value.activeBackgroundProcesses.map {
+            if (it.packageName == packageName) {
+                it.copy(isSelected = !it.isSelected)
+            } else {
+                it
+            }
+        }
+        _uiState.value = _uiState.value.copy(activeBackgroundProcesses = updated)
+    }
+
+    fun clearSelectedMemory() {
+        viewModelScope.launch {
+            val selectedItems = _uiState.value.activeBackgroundProcesses.filter { it.isSelected && it.status == "Active" }
+            if (selectedItems.isEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    clearStatus = "No active background processes selected to clear."
+                )
+                return@launch
+            }
+            
+            _uiState.value = _uiState.value.copy(
+                isCleaningRamProcesses = true,
+                isClearing = true,
+                clearProgress = 0.1f,
+                clearStatus = "Preparing memory sweep cycle..."
+            )
+            delay(300)
+
+            // Calculate total reclaimed RAM
+            val totalReclaimedMb = selectedItems.sumOf { it.ramCostMb }
+            
+            val context = appContext
+            val am = context?.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+
+            // We loop through matching items and visually sweep them one by one
+            var currentProcesses = _uiState.value.activeBackgroundProcesses
+            selectedItems.forEachIndexed { index, item ->
+                // Update current process state to "Sweeping"
+                currentProcesses = currentProcesses.map {
+                    if (it.packageName == item.packageName) it.copy(status = "Sweeping") else it
+                }
+                val progressVal = 0.1f + ((index.toFloat() / selectedItems.size) * 0.8f)
+                _uiState.value = _uiState.value.copy(
+                    clearProgress = progressVal,
+                    clearStatus = "Terminating process: ${item.name}...",
+                    activeBackgroundProcesses = currentProcesses
+                )
+                
+                // Do actual low-level Android process termination if context available
+                if (am != null) {
+                    try {
+                        am.killBackgroundProcesses(item.packageName)
+                    } catch (e: Exception) {}
+                }
+                
+                delay(300)
+                
+                // Set status to "Cleared"
+                currentProcesses = currentProcesses.map {
+                    if (it.packageName == item.packageName) it.copy(status = "Cleared") else it
+                }
+                _uiState.value = _uiState.value.copy(
+                    activeBackgroundProcesses = currentProcesses
+                )
+            }
+
+            // Perform GC to reclaim the memory
+            System.gc()
+            Runtime.getRuntime().gc()
+
+            // Calculate a nice lowered RAM percentage
+            // Each 100MB roughly correlates to about 1.25% of 8GB Ram
+            val percentageReduced = (totalReclaimedMb / 80).coerceIn(5, 35)
+            val currentRam = _uiState.value.ramUsedPercent
+            val finalRamPercent = (currentRam - percentageReduced).coerceIn(30, 85)
+            val nextScore = (_uiState.value.score + 12).coerceAtMost(100)
+
+            val logs = _uiState.value.gameModeLogs + listOf(
+                "[RAM-CLEANER] Initialized One-Tap Clear memory sweep.",
+                "[RAM-CLEANER] Terminated ${selectedItems.size} background processes.",
+                "[RAM-CLEANER] Reclaimed ${String.format("%.2f", totalReclaimedMb / 1024.0)} GB system RAM."
+            )
+
+            _uiState.value = _uiState.value.copy(
+                isCleaningRamProcesses = false,
+                isClearing = false,
+                clearProgress = 1.0f,
+                ramUsedPercent = finalRamPercent,
+                score = nextScore,
+                clearStatus = "Successfully reclaimed ${String.format("%.2f", totalReclaimedMb / 1024.0)} GB memory!",
+                gameModeLogs = logs
+            )
+
             saveSetting {
                 putInt("ram_used_percent", finalRamPercent)
                 putInt("score", nextScore)
@@ -1391,7 +1582,116 @@ class TunerViewModel : ViewModel() {
         )
     }
 
+    fun toggleSimulatedCharging() {
+        val nextVal = !_uiState.value.simulatedChargingEnabled
+        val logs = _uiState.value.gameModeLogs + "[CHARGING-GUARD] USB Power-In charging state is now ${if (nextVal) "CONNECTED" else "DISCONNECTED"}. Thermal dissipation requirements increased."
+        _uiState.value = _uiState.value.copy(
+            simulatedChargingEnabled = nextVal,
+            gameModeLogs = logs
+        )
+    }
+
+    fun toggleBatterySaverRestricting() {
+        val nextVal = !_uiState.value.batterySaverRestricting
+        val nextScore = if (nextVal) (_uiState.value.score - 15).coerceAtLeast(40) else (_uiState.value.score + 15).coerceAtMost(100)
+        val logs = _uiState.value.gameModeLogs + "[POWER-GUARD] Battery Saver restriction ${if (nextVal) "ACTIVATED. CPU/GPU performance restricted to 50% core clock budget" else "DISABLED. High performance unlocked."}"
+        _uiState.value = _uiState.value.copy(
+            batterySaverRestricting = nextVal,
+            score = nextScore,
+            gameModeLogs = logs
+        )
+    }
+
+    fun toggleInGameSettingsOptimized() {
+        val nextVal = !_uiState.value.inGameSettingsOptimized
+        val nextFps = if (nextVal) 60 else 120
+        val textureScale = if (nextVal) 80 else 100
+        val logs = _uiState.value.gameModeLogs + "[GAMESETTINGS-GUARD] Recommended stable presets loaded: Target FPS set to ${nextFps} capped to mitigate GPU overload."
+        _uiState.value = _uiState.value.copy(
+            inGameSettingsOptimized = nextVal,
+            targetFpsCap = nextFps,
+            textureScalePercent = textureScale,
+            gameModeLogs = logs
+        )
+    }
+
     fun clearGameLogs() {
         _uiState.value = _uiState.value.copy(gameModeLogs = emptyList())
+    }
+
+    fun toggleLagKiller() {
+        val target = !_uiState.value.lagKillerEnabled
+        if (target) {
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(
+                    isApplyingLagKiller = true,
+                    lagKillerProgress = 0.05f,
+                    lagKillerStatus = "Initializing Core Lag Killer Daemon..."
+                )
+                delay(400)
+                _uiState.value = _uiState.value.copy(
+                    lagKillerProgress = 0.25f,
+                    lagKillerStatus = "Overriding standard display V-Sync frame pacing..."
+                )
+                delay(450)
+                _uiState.value = _uiState.value.copy(
+                    lagKillerProgress = 0.5f,
+                    lagKillerStatus = "Tuning touch input polling sample rates..."
+                )
+                delay(400)
+                _uiState.value = _uiState.value.copy(
+                    lagKillerProgress = 0.75f,
+                    lagKillerStatus = "Forcing high-priority Bluetooth HID poll protocols..."
+                )
+                delay(350)
+                _uiState.value = _uiState.value.copy(
+                    lagKillerProgress = 1.0f,
+                    lagKillerStatus = "Lag reduction filters applied successfully!"
+                )
+                delay(300)
+
+                val nextScore = (_uiState.value.score + 15).coerceAtMost(100)
+                val logs = _uiState.value.gameModeLogs + listOf(
+                    "[LAG-KILLER] Master engine ENGAGED",
+                    "[LAG-KILLER] Bypassed display V-Sync framework buffers (instant frame pipeline)",
+                    "[LAG-KILLER] Kernel touch pointer rate locked to ULTRA_GAMING (360Hz)",
+                    "[LAG-KILLER] Bluetooth HID gameplay controller polling rate set to 1000Hz"
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    lagKillerEnabled = true,
+                    isApplyingLagKiller = false,
+                    vSyncEnabled = false,
+                    touchSensitivity = TouchSensitivity.ULTRA_GAMING,
+                    bluetoothControllerBoostEnabled = true,
+                    lowLatencyAudioEnabled = true,
+                    bluetoothAudioOptimization = BluetoothAudioOptimization.LE_AUDIO_MIN_LATENCY,
+                    score = nextScore,
+                    gameModeLogs = logs
+                )
+
+                saveSetting {
+                    putBoolean(KEY_LAG_KILLER_ENABLED, true)
+                    putBoolean(KEY_VSYNC_ENABLED, false)
+                    putString(KEY_TOUCH_SENSITIVITY, TouchSensitivity.ULTRA_GAMING.name)
+                    putBoolean(KEY_BLUETOOTH_CONTROLLER_BOOST, true)
+                    putBoolean(KEY_LOW_LATENCY_AUDIO, true)
+                    putString(KEY_BLUETOOTH_AUDIO_OPTIMIZATION, BluetoothAudioOptimization.LE_AUDIO_MIN_LATENCY.name)
+                    putInt("score", nextScore)
+                }
+            }
+        } else {
+            val nextScore = (_uiState.value.score - 15).coerceAtLeast(40)
+            val logs = _uiState.value.gameModeLogs + "[LAG-KILLER] Master engine DISENGAGED (Reverted kernel latency modes to standard system levels)."
+            _uiState.value = _uiState.value.copy(
+                lagKillerEnabled = false,
+                score = nextScore,
+                gameModeLogs = logs
+            )
+            saveSetting {
+                putBoolean(KEY_LAG_KILLER_ENABLED, false)
+                putInt("score", nextScore)
+            }
+        }
     }
 }

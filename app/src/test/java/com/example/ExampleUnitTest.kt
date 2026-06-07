@@ -113,4 +113,47 @@ class ExampleUnitTest {
     viewModel.setGameRamBoost(gameName, false)
     assertFalse(viewModel.uiState.value.gameRamBoostEnabled[gameName] ?: false)
   }
+
+  @Test
+  fun testRamCleanerScannerAndClearingFlow() {
+    val viewModel = TunerViewModel()
+
+    // 1. Check initial states of RAM cleaner
+    assertFalse(viewModel.uiState.value.isScanningRamProcesses)
+    assertFalse(viewModel.uiState.value.ramProcessesScanned)
+    assertFalse(viewModel.uiState.value.isCleaningRamProcesses)
+
+    // 2. Default processes loaded
+    val defaultProcesses = viewModel.uiState.value.activeBackgroundProcesses
+    assertTrue(defaultProcesses.isNotEmpty())
+    assertEquals("Vulkan Shader Standby Cache", defaultProcesses[0].name)
+    assertEquals("com.android.vulkan.shader", defaultProcesses[0].packageName)
+
+    // 3. Toggle selection
+    assertTrue(defaultProcesses[0].isSelected)
+    viewModel.toggleProcessSelection("com.android.vulkan.shader")
+    assertFalse(viewModel.uiState.value.activeBackgroundProcesses[0].isSelected)
+
+    viewModel.toggleProcessSelection("com.android.vulkan.shader")
+    assertTrue(viewModel.uiState.value.activeBackgroundProcesses[0].isSelected)
+  }
+
+  @Test
+  fun testLagKillerToggle() {
+    val viewModel = TunerViewModel()
+
+    // 1. Initially disabled
+    assertFalse(viewModel.uiState.value.lagKillerEnabled)
+    assertFalse(viewModel.uiState.value.isApplyingLagKiller)
+
+    // 2. Click toggle will initiate applying state immediately
+    viewModel.toggleLagKiller()
+    assertTrue(viewModel.uiState.value.isApplyingLagKiller)
+    assertTrue(viewModel.uiState.value.lagKillerProgress > 0f)
+
+    // 3. Since we want to test disengaging too, let's toggle with disabled
+    // If it's enabled, toggleLagKiller will disable it synchronously
+    // Let's force state.copy to simulate enabled which runs disengage synchronously
+    // We can't access private _uiState directly, but we can verify our toggling starts correctly.
+  }
 }
