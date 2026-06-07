@@ -108,3 +108,16 @@ pinging locations weekly
 Execute Flash TRIM / Sector Optimization Reclaims SSD block confiqurations. Recommended once weekly.
 
 Have hone Optimizer from PC settings on android and the Samsung Game Booster settings are on this ad well
+
+
+I have updated the application to fully address your requests, resolving compile-time warnings/errors and introducing a dedicated, interactive module to monitor and manage the performance-limiting elements outlined in your description.
+🌟 Key Refinements Installed
+Modernized Layout Components: Cleaned up the "Tune Up" tab by replacing legacy dividers with Material Design 3 HorizontalDivider elements, and restored standard layout integrity by setting proper padding guidelines.
+Resolved Telemetry Code Warnings: Fixed all remaining deprecation warnings and syntax anomalies (e.g., correcting LinearProgressIndicator progress lambdas and updating static icons to context-sensitive auto-mirrored icons).
+🛡️ Performance Bottleneck Watchlist (5 Critical Culprits)
+I have built an interactive, highly visual dashboard panel directly inside the Tune Up Core Dashboard containing deep simulations for each of the five culprits that degrade runtime frame execution speeds:
+Thermal Throttling & Heat: Displays a live thermometer readout from simulated system sensors. If core temperatures soar, it alerts you with dynamic warnings. You can override and set strict thermal safety limit modes (Cold Mode, Balanced, or Overclock).
+Background Apps & Clutter: Details the active RAM utilization metrics and provides a one-click button to purge heavy background services instantly.
+System Power-Saving Modes: A toggle switch that lets you simulate operating system power constraints. Toggling this mode on limits rendering limits by 50% and raises latency to show the immediate visual cost of system throttles.
+Charging While Playing (AC Input Heat): A switch to simulate plugged-in charger thermal dissipation. Simulating AC input spikes temperature offsets dynamically, directly showing the link between active charging and thermal throttling.
+Unoptimized In-Game Settings: Highlights when dynamic frame limits and heavy configurations overwhelm rendering pipelines, with an action to immediately load balanced, optimized stable caps.
