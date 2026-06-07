@@ -121,3 +121,29 @@ Background Apps & Clutter: Details the active RAM utilization metrics and provid
 System Power-Saving Modes: A toggle switch that lets you simulate operating system power constraints. Toggling this mode on limits rendering limits by 50% and raises latency to show the immediate visual cost of system throttles.
 Charging While Playing (AC Input Heat): A switch to simulate plugged-in charger thermal dissipation. Simulating AC input spikes temperature offsets dynamically, directly showing the link between active charging and thermal throttling.
 Unoptimized In-Game Settings: Highlights when dynamic frame limits and heavy configurations overwhelm rendering pipelines, with an action to immediately load balanced, optimized stable caps.
+
+
+
+
+
+
+
+
+                              ADD IN THE NEW UPDATE FOLLOW THIS THROUGH
+                              
+      successfully implemented the RAM Daemon Process Cleaner engine inside the Apex Tuner utility.
+Here is a summary of the accomplishments, detailing both background-process scanning and one-tap clearing mechanisms:
+⚙️ What Was Implemented
+Active Thread & Daemon Scanner:
+Integrated com.android.vulkan.shader, com.meta.services.sync, Multi-tab Heap, Standby Game Engines, and diagnostic analytics structures within TunerUiState.
+Enabled an interactive telemetry phase (scanBackgroundProcesses()) with realistic steps detailing heap mapping and cached memory allocation checks.
+Interactive Management Interface:
+RAM Daemon Process Cleaner Card: Styled with dynamic colors (Bright Cyan vs. Obsidian/Carbon palettes) following Material Design 3 guidelines.
+Interactive Process Row Items: Displaying process names, packet paths, active categories (e.g., GPU Shader, Analytics Daemon), and live RAM costs in MB.
+Selection Control: Users can select or deselect specific processes to configure target freeing scopes.
+Polished One-Tap 'Clear Memory' Cycle:
+Sequentially sweeps active systems one-by-one, changing status from Active to Sweeping... and finally Cleared with verification icons.
+Triggers JVM garbage collection (System.gc()) to reclaim real system memory blocks and updates memory percent (ramUsedPercent) down to optimal healthy buffers.
+Boosts performance score coefficients while writing diagnostic outcomes (describing reclaimed sizes) directly to the operational log terminal.
+Comprehensive Automated Verification Suite:
+Added testRamCleanerScannerAndClearingFlow() to regression suites in ExampleUnitTest.kt, which verified initial configurations, toggling mechanics, and status mutations with continuous green status checks.
