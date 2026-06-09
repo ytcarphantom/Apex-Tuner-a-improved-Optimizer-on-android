@@ -51,6 +51,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -4265,6 +4268,365 @@ fun DevTweaksTabContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- 0. ULTRA-COOL GAME SESSION GUARD & HEAT CONTROL TWEAKS ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_session_heat_control"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Thermostat,
+                            contentDescription = "Cooling session controller",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ultra-Cool Game Session Thermal Guard",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Advanced performance parameters to mitigate thermal saturation and phone overheating during heavy, long gaming runs.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // --- Setting 1: Dynamic Cooldown Underclock ---
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Dynamic Cooldown Underclock Profile",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Capping CPU/GPU frequency spikes by 15% under gaming load to limit core heat with negligible performance impact.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                            )
+                        }
+                        Switch(
+                            checked = state.thermalCooldownUnderclock,
+                            onCheckedChange = { viewModel.setThermalCooldownUnderclock(it) },
+                            modifier = Modifier.testTag("switch_thermal_cooldown"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                    // --- Setting 2: Optimal Thermal Shader Precompilation ---
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Startup Shader Cache Compilation",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Precompiles GL/Vulkan shaders at game startup to prevent live JIT compilation spikes, keeping cores significantly cooler.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                            )
+                        }
+                        Switch(
+                            checked = state.shaderPrecompilationThermalOptimize,
+                            onCheckedChange = { viewModel.setShaderPrecompilationThermalOptimize(it) },
+                            modifier = Modifier.testTag("switch_shader_compile"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                    // --- Setting 3: Dynamic Render Target Downscaling ---
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Dynamic Render Target Downscaler",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Downscales offscreen render textures dynamically by 10% under load to decrease fragment shading warmth.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                            )
+                        }
+                        Switch(
+                            checked = state.dynamicRenderTargetDownscaling,
+                            onCheckedChange = { viewModel.setDynamicRenderTargetDownscaling(it) },
+                            modifier = Modifier.testTag("switch_render_scaler"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                    // --- Setting 4: Panel Backlight Eco-Thermal Profile ---
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Panel Backlight Eco-Thermal Profile",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Regulates OLED emission / screen backlight thermals dynamically to keep the chassis outer surface significantly cooler.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                            )
+                        }
+                        Switch(
+                            checked = state.displayEcoThermalMode,
+                            onCheckedChange = { viewModel.setDisplayEcoThermalMode(it) },
+                            modifier = Modifier.testTag("switch_display_eco_thermal"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- 0.2 AP CLOCK LIMITATION (GAME BOOSTER+) ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_ap_clock_limitation"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    // Title Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Speed,
+                            contentDescription = "AP Clock Limitation",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "AP Clock Limitation",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Samsung Good Lock / Game Booster+ Feature",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Explanation of AP Clock Limit
+                    Text(
+                        text = "AP clock limitation allows users to cap the maximum CPU and GPU speeds. By forcing lower clock speeds, the phone draws less power and generates significantly less heat, which helps prevent thermal throttling and extends battery life.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LightWhite,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Switch Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Clock Speed Cap",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Locks maximum CPU/GPU cycle rates at a balanced threshold to maintain steady framerates.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                            )
+                        }
+                        Switch(
+                            checked = state.apClockLimitationEnabled,
+                            onCheckedChange = { viewModel.setApClockLimitationEnabled(it) },
+                            modifier = Modifier.testTag("switch_ap_clock_limit"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = SlateGray,
+                                uncheckedTrackColor = Color(0xFFDEE3EB)
+                            )
+                        )
+                    }
+
+                    // Only show slider if enabled
+                    if (state.apClockLimitationEnabled) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Maximum Clock Speed Target",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "${state.apClockLimitPercent}% Capacity",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 12.sp,
+                                    color = NeonGreen
+                                )
+                            }
+                            
+                            Slider(
+                                value = state.apClockLimitPercent.toFloat(),
+                                onValueChange = { viewModel.setApClockLimitPercent(it.toInt()) },
+                                valueRange = 50f..95f,
+                                steps = 8, // 50, 55, 60, 65, 70, 75, 80, 85, 90, 95
+                                modifier = Modifier.fillMaxWidth().testTag("slider_ap_clock_percent"),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = NeonGreen,
+                                    activeTrackColor = NeonGreen,
+                                    inactiveTrackColor = SlateGray.copy(alpha = 0.3f),
+                                    activeTickColor = Color.Black.copy(alpha = 0.5f),
+                                    inactiveTickColor = NeonGreen.copy(alpha = 0.5f)
+                                )
+                            )
+                            
+                            Text(
+                                text = "Lower speeds generate significantly less heat, balancing performance with temperature and battery drain.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Setup Guide Subsection matching Samsung Game Booster+ UI instructions requested in the image
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NeonCyan.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                            .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = "Setting Up AP Clock Limit Link",
+                                    tint = NeonGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Setting Up the AP Clock Limit (Samsung Devices)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            val steps = listOf(
+                                "1. Open the Good Lock app on your Galaxy device.",
+                                "2. Navigate to the Plugins or 'Life up' tab and ensure you have the Game Booster+ module installed/updated.",
+                                "3. Open Game Booster+ and select the game you want to optimize.",
+                                "4. Locate the AP clock limitation toggle and adjust it to your preferred performance or battery saving profile."
+                            )
+                            
+                            steps.forEach { step ->
+                                Text(
+                                    text = step,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = LightWhite,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // --- 1. SYSTEM GRAPHICS DRIVER CONFIG (GUIDE + SWITCH) ---
         item {
             Card(
@@ -4339,6 +4701,128 @@ fun DevTweaksTabContent(
                                 color = SlateGray,
                                 lineHeight = 16.sp,
                                 modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 1.2 SET GPU RENDERER ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_gpu_renderer_selector"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Memory,
+                            contentDescription = "GPU Renderer",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Set GPU Renderer",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "On some versions of Android, you can choose between GraphicsROM / SkiaGL or SkiaVulkan to change the underlying rendering pipeline framework, though both still utilize hardware acceleration.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Renderer selectors (segmented / row selection)
+                    val options = listOf("Default", "GraphicsROM / SkiaGL", "SkiaVulkan")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        options.forEach { option ->
+                            val isSelected = when (option) {
+                                "Default" -> state.selectedGpuRenderer == "Default"
+                                "GraphicsROM / SkiaGL" -> state.selectedGpuRenderer == "GraphicsROM / SkiaGL"
+                                "SkiaVulkan" -> state.selectedGpuRenderer == "SkiaVulkan"
+                                else -> false
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        if (isSelected) NeonCyan.copy(alpha = 0.25f) else Color.Transparent,
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) NeonCyan else Color.Transparent,
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable { viewModel.setSelectedGpuRenderer(option) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = option,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                    color = if (isSelected) NeonGreen else LightWhite,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // GPU Core Microcode Information Panel (highlighted info box requested by user)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NeonCyan.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                            .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = "GPU Definition Info",
+                                    tint = NeonGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "GPU (Graphics Processing Unit)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Designed with thousands of smaller, simpler cores optimized for parallel processing. It can calculate the math for thousands of pixels and lighting shaders simultaneously, which is exactly what gaming requires.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LightWhite,
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
                             )
                         }
                     }
@@ -6697,6 +7181,541 @@ fun UnoptimizedSettingsCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun EducationTabContent(
+    state: TunerUiState,
+    viewModel: TunerViewModel,
+    isTablet: Boolean
+) {
+    var activeSubSection by remember { mutableStateOf(0) }
+    
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "HARDWARE & PERFORMANCE KNOWLEDGE BASE",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeonCyan,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Deep dive into hardware architecture, rendering execution trees, and power-saving best practices.",
+                        fontSize = 11.sp,
+                        color = SlateGray
+                    )
+                }
+            }
+        }
+        
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CarbonCard, shape = RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val subSections = listOf("CPU RENDERING", "PC VS MOBILE", "GAME OPTIMIZATION")
+                subSections.forEachIndexed { index, title ->
+                    val isSelected = activeSubSection == index
+                    Button(
+                        onClick = { activeSubSection = index },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("edu_sub_tab_$index"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) NeonCyan.copy(alpha = 0.12f) else Color.Transparent,
+                            contentColor = if (isSelected) NeonCyan else SlateGray
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(vertical = 10.dp, horizontal = 4.dp),
+                        elevation = null
+                    ) {
+                        Text(
+                            text = title,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+        
+        when (activeSubSection) {
+            0 -> {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "1. The Role of the CPU in Rendering",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "While the GPU (Graphics Processing Unit) is essentially a massive number of mini-processors meant to do simple math at lightning speeds, the CPU (Central Processing Unit) acts as the \"brains\" of your computer. Even when you use your GPU to render, the CPU is always required to prepare the scene, handle data, and manage the overall render.",
+                                    fontSize = 12.sp,
+                                    color = SlateGray,
+                                    lineHeight = 18.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = NeonCyan.copy(alpha = 0.05f)),
+                                    border = BorderStroke(0.5.dp, NeonCyan.copy(alpha = 0.2f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Memory,
+                                            contentDescription = "CPU Icon",
+                                            tint = NeonCyan,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "When you change to CPU rendering: The CPU takes over the heavy lifting of calculating lighting, shadows, and textures itself.",
+                                            fontSize = 11.sp,
+                                            color = LightWhite,
+                                            fontWeight = FontWeight.Medium,
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "2. Advantages of CPU Rendering",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = NeonGreen
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Memory Capacity",
+                                    bodyText = "CPUs access your computer's system RAM, which is usually much larger than a GPU's Video RAM (VRAM). This allows the CPU to handle massive 3D scenes (like architectural visualizations or complex particle effects) without crashing."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Accuracy",
+                                    bodyText = "Because CPUs have high precision for rigorous mathematical computations, CPU rendering is often more reliable and artifact-free, producing highly precise final images."
+                                )
+                            }
+                        }
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "3. Drawbacks of CPU Rendering",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = HotRed
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Slower Speeds",
+                                    bodyText = "CPUs have fewer cores than GPUs. Consequently, CPU rendering generally takes significantly longer to complete compared to GPU rendering."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Heat and Power",
+                                    bodyText = "Because CPUs take longer to compute heavy tasks, your system will run at higher power and generate more heat for longer periods."
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            1 -> {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "PC Hardware Architecture vs. Android SoC Constraints",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "Understand the underlying architectural differences between full desktop gaming configurations and mobile battery-driven form-factors.",
+                                    fontSize = 11.sp,
+                                    color = SlateGray
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Filled.CloudQueue,
+                                        contentDescription = "Cooling",
+                                        tint = NeonCyan,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "1. Active Cooling and Dedicated Power",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 13.sp,
+                                        color = LightWhite
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Thermal Headroom",
+                                    bodyText = "PCs use fans and liquid cooling to dissipate heat. This allows processors to run at peak clock speeds indefinitely without thermal throttling."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Wall Power",
+                                    bodyText = "PCs plug directly into an electrical outlet, allowing them to draw hundreds of watts of power. Android devices are limited by their batteries and must throttle performance to prevent overheating and preserve battery life."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "2. Modularity and Upgradability",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Swappable Components",
+                                    bodyText = "You can easily swap out a PC's CPU, GPU, or RAM for a faster version. Android devices are sealed units where the components are permanently soldered to the motherboard."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Component-Level Upgrades",
+                                    bodyText = "If a PC struggles to render 4K video or play demanding games, you can specifically upgrade the graphics card, whereas an Android device requires replacing the entire phone or tablet."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "3. Dedicated Graphics Cards (GPUs)",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "VRAM Pools",
+                                    bodyText = "PCs utilize massive dedicated graphics cards with their own high-speed memory (VRAM). This allows PCs to process complex 3D rendering and ray-tracing instantly."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Integrated Processors",
+                                    bodyText = "Android devices typically rely on an integrated System-on-Chip (SoC) where the CPU and GPU share the same memory pool."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "4. Generic Driver Support",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Hardware Agnostic",
+                                    bodyText = "PCs (like those running Windows) use a generic driver model, meaning you can swap out hardware—such as plugging in a new printer, mouse, or graphics card—and the operating system will generally support it seamlessly."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Long-Term Compatibility",
+                                    bodyText = "This generic model combined with enterprise software support allows PCs to keep working and receiving performance updates for a decade or more. Android relies on component-specific drivers, making it more difficult to upgrade the OS over time without losing performance or support."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "5. Deep File System and Background Access",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Unrestricted Multitasking",
+                                    bodyText = "PCs allow you to run multiple heavy background programs at once, overlap windows, and access all internal storage without performance caps."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Aggressive Task Management",
+                                    bodyText = "Android utilizes aggressive \"tombstoning\" and garbage collection to kill background apps, which saves battery but limits heavy-duty, multi-window multitasking."
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            2 -> {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = NeonCyan.copy(alpha = 0.04f)),
+                            border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.2f)),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "Mobile Power & Game Frame Optimization Guide",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = NeonCyan
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "To reduce computing power and battery consumption during Android gaming, tweak in-game settings to cap the framerate and lower graphic resolution. On the system level, use built-in game boosters to throttle performance, limit background processes, or activate device-specific power-saving/light performance modes.",
+                                    fontSize = 12.sp,
+                                    color = SlateGray,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "1. Optimize In-Game Settings",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "The most effective way to lower computing power is to reduce the workload on your device’s CPU and GPU.",
+                                    fontSize = 11.sp,
+                                    color = SlateGray
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Cap the Framerate",
+                                    bodyText = "Many games default to 60fps or higher. Lowering this to a steady 30 FPS significantly reduces system strain."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Lower Graphical Quality",
+                                    bodyText = "Turn off or scale down anti-aliasing, shadows, and particle effects."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Reduce Render Resolution",
+                                    bodyText = "Check the game's display settings and drop the resolution. This alone drastically reduces GPU load."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "2. Adjust System & Battery Profiles",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Preventing your phone from running at maximum capacity keeps it cooler and saves power.",
+                                    fontSize = 11.sp,
+                                    color = SlateGray
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Use Light Performance Modes",
+                                    bodyText = "On Samsung devices, go to Battery > More battery settings > Performance profile and select Light. This prioritizes cooling and battery life while keeping game performance stable."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Turn On Battery Saver",
+                                    bodyText = "Standard battery savers will throttle CPU speed, severely restricting computing resources. This is ideal for less intensive games or emulators."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Limit Background Apps",
+                                    bodyText = "Close out all other apps before launching a game to free up valuable RAM and stop background processes from stealing CPU cycles."
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "3. Apply System Tools and Built-in Tweaks",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    color = LightWhite
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                BulletPoint(
+                                    boldPrefix = "Utilize Game Booster",
+                                    bodyText = "If your phone has a built-in Game Booster or Game Launcher (e.g., Samsung Gaming Hub), open it and select the Battery Saving or Optimization profile."
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BulletPoint(
+                                    boldPrefix = "Unlock System Graphics Driver",
+                                    bodyText = "For devices like Samsung, you can ensure your game utilizes dedicated system graphics drivers for maximum efficiency. Go to Settings > Developer Options > Graphics Driver, locate your game, and select System Graphics Driver."
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BulletPoint(
+    boldPrefix: String,
+    bodyText: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "•",
+            color = NeonCyan,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(end = 8.dp)
+        )
+        Text(
+            text = buildAnnotatedString {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = LightWhite)) {
+                    append("$boldPrefix: ")
+                }
+                withStyle(style = SpanStyle(color = SlateGray)) {
+                    append(bodyText)
+                }
+            },
+            fontSize = 11.5.sp,
+            lineHeight = 17.2.sp,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 

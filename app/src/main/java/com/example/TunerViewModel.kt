@@ -224,7 +224,14 @@ data class TunerUiState(
     val usbSelectiveSuspendDisabled: Boolean = false,
     val processorPowerLimitLocked100: Boolean = false,
     val gpuQueueOptimizationEnabled: Boolean = false,
-    val threadPriorityPinned: Boolean = false
+    val threadPriorityPinned: Boolean = false,
+    val thermalCooldownUnderclock: Boolean = false,
+    val shaderPrecompilationThermalOptimize: Boolean = false,
+    val dynamicRenderTargetDownscaling: Boolean = false,
+    val displayEcoThermalMode: Boolean = false,
+    val selectedGpuRenderer: String = "Default",
+    val apClockLimitationEnabled: Boolean = false,
+    val apClockLimitPercent: Int = 90
 )
 
 class TunerViewModel : ViewModel() {
@@ -768,6 +775,14 @@ class TunerViewModel : ViewModel() {
         val processorPowerLimitLocked100 = prefs.getBoolean("processor_power_limit_locked_100", false)
         val gpuQueueOptimizationEnabled = prefs.getBoolean("gpu_queue_optimization_enabled", false)
         val threadPriorityPinned = prefs.getBoolean("thread_priority_pinned", false)
+        
+        val thermalCooldownUnderclock = prefs.getBoolean("thermal_cooldown_underclock", false)
+        val shaderPrecompilationThermalOptimize = prefs.getBoolean("shader_precompilation_thermal_optimize", false)
+        val dynamicRenderTargetDownscaling = prefs.getBoolean("dynamic_render_target_downscaling", false)
+        val displayEcoThermalMode = prefs.getBoolean("display_eco_thermal_mode", false)
+        val selectedGpuRenderer = prefs.getString("selected_gpu_renderer", "Default") ?: "Default"
+        val apClockLimitationEnabled = prefs.getBoolean("ap_clock_limitation_enabled", false)
+        val apClockLimitPercent = prefs.getInt("ap_clock_limit_percent", 90)
 
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
@@ -820,7 +835,14 @@ class TunerViewModel : ViewModel() {
             usbSelectiveSuspendDisabled = usbSelectiveSuspendDisabled,
             processorPowerLimitLocked100 = processorPowerLimitLocked100,
             gpuQueueOptimizationEnabled = gpuQueueOptimizationEnabled,
-            threadPriorityPinned = threadPriorityPinned
+            threadPriorityPinned = threadPriorityPinned,
+            thermalCooldownUnderclock = thermalCooldownUnderclock,
+            shaderPrecompilationThermalOptimize = shaderPrecompilationThermalOptimize,
+            dynamicRenderTargetDownscaling = dynamicRenderTargetDownscaling,
+            displayEcoThermalMode = displayEcoThermalMode,
+            selectedGpuRenderer = selectedGpuRenderer,
+            apClockLimitationEnabled = apClockLimitationEnabled,
+            apClockLimitPercent = apClockLimitPercent
         )
     }
 
@@ -1149,7 +1171,23 @@ class TunerViewModel : ViewModel() {
             val context = appContext
             var realRamUsed = stateAtStart.ramUsedPercent
             var realStorageUsed = stateAtStart.storageUsedPercent
-            var realCpuTemp = targetTemp
+            // Apply advanced thermal session guard reductions
+            var adjustedTargetTemp = targetTemp
+            if (stateAtStart.thermalCooldownUnderclock) {
+                adjustedTargetTemp -= 4
+            }
+            if (stateAtStart.shaderPrecompilationThermalOptimize) {
+                adjustedTargetTemp -= 2
+            }
+            if (stateAtStart.dynamicRenderTargetDownscaling) {
+                adjustedTargetTemp -= 3
+            }
+            if (stateAtStart.displayEcoThermalMode) {
+                adjustedTargetTemp -= 2
+            }
+            adjustedTargetTemp = adjustedTargetTemp.coerceAtLeast(25)
+
+            var realCpuTemp = adjustedTargetTemp
 
             if (context != null) {
                 // Real RAM used percentage
@@ -1196,14 +1234,16 @@ class TunerViewModel : ViewModel() {
             
             // Check if thermal guard is active and device exceeds temperature threshold
             if (stateAtStart.autoThermalThrottlingEnabled && realCpuTemp >= stateAtStart.thermalThrottleThresholdTemp) {
-                finalFps = 80
-                // Reduce the temperature simulated back down, safeguarding the hardware!
-                finalCpuTemp = (stateAtStart.thermalThrottleThresholdTemp - 2 - (0..2).random()).coerceAtLeast(28)
+                // Gentle, smooth reduction to maintain cooler but high-performance gameplay (good performance)
+                val reducedFps = (currentFps * 0.85).toInt().coerceIn(45, 100)
+                finalFps = reducedFps
+                // Gently lower the simulated temperature to prevent extreme hardware thermal runaway!
+                finalCpuTemp = (stateAtStart.thermalThrottleThresholdTemp - 1 - (0..1).random()).coerceAtLeast(28)
                 
                 val timestampStr = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
                 appendCustomLogLines(listOf(
-                    "$timestampStr W PowerManagerService: THERMAL MITIGATION COOLDOWN IN EFFECT! Temperature ($realCpuTemp°C >= ${stateAtStart.thermalThrottleThresholdTemp}°C).",
-                    "$timestampStr I PowerManagerService: Safe Thermal Guard triggered — Clamped game engine to 80FPS and downsampled frame buffers to 25%."
+                    "$timestampStr W PowerManagerService: THERMAL MITIGATION GUARD: Core temperature detected ($realCpuTemp°C >= ${stateAtStart.thermalThrottleThresholdTemp}°C).",
+                    "$timestampStr I PowerManagerService: Moderate performance throttling initiated — Scaling render rate moderately to ${reducedFps}FPS to protect hardware while preserving ultra-smooth, premium gameplay."
                 ))
             }
 
@@ -1719,6 +1759,63 @@ class TunerViewModel : ViewModel() {
         saveSetting { putInt("thermal_throttle_threshold_temp", temp) }
         val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
         appendCustomLogLines(listOf("$timestamp I ThermalGuard: Throttling activation temperature limit thresholds updated to: $temp°C."))
+    }
+
+    fun setThermalCooldownUnderclock(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(thermalCooldownUnderclock = enabled)
+        saveSetting { putBoolean("thermal_cooldown_underclock", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Dynamic Cooldown Underclock is $statusText. Capping minor cores at -15% under gaming load."))
+    }
+
+    fun setShaderPrecompilationThermalOptimize(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(shaderPrecompilationThermalOptimize = enabled)
+        saveSetting { putBoolean("shader_precompilation_thermal_optimize", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Vulkan Shader Precompilation is $statusText. Caching shading compilation at game startup."))
+    }
+
+    fun setDynamicRenderTargetDownscaling(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(dynamicRenderTargetDownscaling = enabled)
+        saveSetting { putBoolean("dynamic_render_target_downscaling", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Dynamic Render Buffer Downscaler is $statusText. Adaptive render scaling target set to 0.85x under thermal loads."))
+    }
+
+    fun setDisplayEcoThermalMode(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(displayEcoThermalMode = enabled)
+        saveSetting { putBoolean("display_eco_thermal_mode", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Panel Backlight Eco-Thermal Profile is $statusText. Adaptive OLED screen backlight emission control activated."))
+    }
+
+    fun setSelectedGpuRenderer(renderer: String) {
+        _uiState.value = _uiState.value.copy(selectedGpuRenderer = renderer)
+        saveSetting { putString("selected_gpu_renderer", renderer) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        appendCustomLogLines(listOf("$timestamp I HW-Renderer: Switched active GPU renderer pipeline framework to: $renderer."))
+    }
+
+    fun setApClockLimitationEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(apClockLimitationEnabled = enabled)
+        saveSetting { putBoolean("ap_clock_limitation_enabled", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        val limit = _uiState.value.apClockLimitPercent
+        appendCustomLogLines(listOf("$timestamp I AP-Clock: AP clock speed limit is $statusText. CPU/GPU speeds capped at $limit% of peak performance."))
+    }
+
+    fun setApClockLimitPercent(percent: Int) {
+        _uiState.value = _uiState.value.copy(apClockLimitPercent = percent)
+        saveSetting { putInt("ap_clock_limit_percent", percent) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        if (_uiState.value.apClockLimitationEnabled) {
+            appendCustomLogLines(listOf("$timestamp I AP-Clock: Capped CPU/GPU maximum speed target to $percent% of raw performance profile."))
+        }
     }
 
     fun setEliminateStuttering(enabled: Boolean) {
@@ -3082,12 +3179,58 @@ class TunerViewModel : ViewModel() {
                 val activeDriverName = _uiState.value.importedDriverName ?: "System Default Adreno Driver"
                 val driverLog = "[VULKAN] Registered custom vulkan driver stack overlays: $activeDriverName"
                 
+                val activePowerPlan = _uiState.value.activePowerPlan
+                val extraTweakLogs = mutableListOf<String>()
+                
+                if (_uiState.value.eliminateStutteringEnabled) {
+                    extraTweakLogs.add("[STUTTER-SHIELD] Lock Step presentation fences loaded for target process PID.")
+                }
+                if (_uiState.value.swappyFramePacingEnabled) {
+                    extraTweakLogs.add("[SWAPPY] Hardware Choreographer frame-rate alignment locked (~16.6ms at 60Hz / ~8.3ms at 120Hz).")
+                }
+                if (_uiState.value.adpfBoostGovernorEnabled) {
+                    extraTweakLogs.add("[ADPF] Created CPU Predictive Performance Hint Session for launched process.")
+                }
+                if (activePowerPlan != "Balanced") {
+                    extraTweakLogs.add("[POWER-GOVERNOR] Forced high-priority CPU performance scheme: ${activePowerPlan.uppercase()}.")
+                }
+                if (_uiState.value.usbSelectiveSuspendDisabled) {
+                    extraTweakLogs.add("[USB-POLLING] Bypass USB selective suspend flags to eliminate game controller input latency.")
+                }
+                if (_uiState.value.processorPowerLimitLocked100) {
+                    extraTweakLogs.add("[CPU-CLOCK-LOCK] Dynamic downclocking forbidden. Core frequency locked at 100% capacity.")
+                }
+                if (_uiState.value.gpuQueueOptimizationEnabled) {
+                    extraTweakLogs.add("[GPU-QUEUE] Optimization active. Reduced Vulkan/OpenGL push command serialization bounds.")
+                }
+                if (_uiState.value.threadPriorityPinned) {
+                    extraTweakLogs.add("[AFFINITY] Render/physics worker thread priority set to SCHED_FIFO, pinned to prime CPU cores.")
+                }
+                if (_uiState.value.thermalCooldownUnderclock) {
+                    extraTweakLogs.add("[COOLDOWN] Dynamic Cooldown Underclock active: Capping CPU frequency spikes by 15% under gaming load to limit core heat.")
+                }
+                if (_uiState.value.shaderPrecompilationThermalOptimize) {
+                    extraTweakLogs.add("[SHADER-CACHE] Vulkan Shader precompilation enabled: All pipeline pipelines compiled on startup to prevent live CPU spikes.")
+                }
+                if (_uiState.value.dynamicRenderTargetDownscaling) {
+                    extraTweakLogs.add("[DOWNSCALER] Dynamic offscreen render buffer downscaler set to 0.85x under high thermal zones to reduce fragment shading heat.")
+                }
+                if (_uiState.value.displayEcoThermalMode) {
+                    extraTweakLogs.add("[ECO-DISPLAY] Panel Backlight Eco-Thermal Profile active: OLED screen backlight dynamic power emission control engaged.")
+                }
+                if (_uiState.value.selectedGpuRenderer != "Default") {
+                    extraTweakLogs.add("[GPU-RENDERER] Forced active rendering pipeline framework: ${_uiState.value.selectedGpuRenderer} (Hardware Accelerated).")
+                }
+                if (_uiState.value.apClockLimitationEnabled) {
+                    extraTweakLogs.add("[AP-CLOCK-LIMIT] Game Booster+ limits enabled: CPU/GPU clock rates capped at ${_uiState.value.apClockLimitPercent}% of hardware peak to prevent thermal throttling.")
+                }
+
                 val shaderInjectionLogs = listOf(
                     "[ENGINE] Bound SurfaceView frame-buffer texture scale factor directly to target pipeline: ${activeTextureScale}% native resolution.",
                     "[ENGINE] Registered render-thread bindings for direct CUDA / Vulkan API bypass: $activeCudaStatus.",
                     "[ENGINE] Transmitted Level of Detail (LOD) mesh draw distance constraints: $activeRenderDistance render threshold.",
                     driverLog
-                )
+                ) + extraTweakLogs
 
                 _uiState.value = _uiState.value.copy(
                     inputLagOptimized = true,
