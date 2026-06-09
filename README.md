@@ -26,3 +26,9 @@ Implemented Segmented Selectors to swap the hardware acceleration pipeline dynam
 Configured state-synchronized diagnostics logs which report the chosen framework in the active terminal logs.
 Dedicated Hardware Information Hub:
 Integrated an informative, high-contrast, neon-bordered card detailing the parallel-processing capabilities of the Graphics Processing Unit (GPU), explaining its core architecture under heavy workloads.
+
+
+successfully designed and integrated the AP Clock Limitation feature into the Dev Tweaks panel of Apex Tuner. Here is a high-level overview of the implemented changes and visual choices:
+Interactive AP Clock Limitation Controls: Added a customizable M3 Card that hosts the AP Clock Limitation feature inspired by individual vendor utilities. It allows toggling the clock constraint state and dynamically adjusting maximum CPU/GPU clock cycles (ranging from 50% up to 95% core capabilities) using a responsive Slider component.
+Good Lock / Game Booster+ Integration Guide: Configured a stylized Information Panel at the base of the card detailing exactly how to locate, activate, and optimize the AP clock speeds configuration on real Galaxy hardware.
+Advanced Engine Logs & State Persistence: Coupled this feature with the core VM settings engine to provide automatic persistence across sessions and append custom configuration logs ([AP-CLOCK-LIMIT]) straight to the real-time gaming telemetry output during automated profile launches.
