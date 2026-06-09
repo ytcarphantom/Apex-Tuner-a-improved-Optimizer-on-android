@@ -35,3 +35,8 @@ successfully designed and integrated the AP Clock Limitation feature into the De
 Interactive AP Clock Limitation Controls: Added a customizable M3 Card that hosts the AP Clock Limitation feature inspired by individual vendor utilities. It allows toggling the clock constraint state and dynamically adjusting maximum CPU/GPU clock cycles (ranging from 50% up to 95% core capabilities) using a responsive Slider component.
 Good Lock / Game Booster+ Integration Guide: Configured a stylized Information Panel at the base of the card detailing exactly how to locate, activate, and optimize the AP clock speeds configuration on real Galaxy hardware.
 Advanced Engine Logs & State Persistence: Coupled this feature with the core VM settings engine to provide automatic persistence across sessions and append custom configuration logs ([AP-CLOCK-LIMIT]) straight to the real-time gaming telemetry output during automated profile launches.
+
+Key Technical Achievements
+Dynamic Capacity Capping: The simulation now dynamically caps raw CPU and GPU maximum frequencies based on the chosen limits (from 50% to 95% capacity), accurately throttling simulated target framerates (targetFps).
+Enhanced Heat Dispersion: Power consumption and core heat calculations have been optimized. When active, lower clock-frequency targets successfully trigger significant, visible drops in core telemetry temperature (targetTemp), preventing system-wide thermal runaway.
+Extended Battery Lifespan: Models the exact energy conservation curve of modern AP speed limits, automatically expanding the remaining battery gameplay estimates (targetBattery) proportionally to the degree of performance capping.
