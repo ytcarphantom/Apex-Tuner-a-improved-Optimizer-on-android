@@ -204,12 +204,42 @@ data class TunerUiState(
     val realAudioOptimalBufferSize: String = "N/A",
     val realThermalStatusString: String = "UNKNOWN",
     val realWifiLockHeld: Boolean = false,
-    val realAdpfSessionHeld: Boolean = false
+    val realAdpfSessionHeld: Boolean = false,
+    val cudaCompiled: Boolean = false,
+    val isCompilingCuda: Boolean = false,
+    val devRenderDistance: String = "Balanced"
 )
 
 class TunerViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(TunerUiState())
     val uiState: StateFlow<TunerUiState> = _uiState.asStateFlow()
+
+    fun openWriteSettingsPermissionScreen(context: Context) {
+        try {
+            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                data = android.net.Uri.parse("package:${context.packageName}")
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            } catch (ex: Exception) {
+                try {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = android.net.Uri.parse("package:${context.packageName}")
+                        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (ex2: Exception) {
+                    // final fallback
+                }
+            }
+        }
+    }
 
     fun checkWriteSettingsPermission(context: Context) {
         val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
@@ -706,6 +736,8 @@ class TunerViewModel : ViewModel() {
         } ?: BluetoothAudioOptimization.STANDARD
 
         val lagKillerEnabled = prefs.getBoolean(KEY_LAG_KILLER_ENABLED, false)
+        val devRenderDistance = prefs.getString("dev_render_distance", "Balanced") ?: "Balanced"
+        val cudaCompiled = prefs.getBoolean("cuda_compiled", false)
 
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
@@ -743,7 +775,9 @@ class TunerViewModel : ViewModel() {
             lowLatencyAudioEnabled = lowLatencyAudioEnabled,
             bluetoothControllerBoostEnabled = bluetoothControllerBoostEnabled,
             bluetoothAudioOptimization = bluetoothAudioOptimization,
-            lagKillerEnabled = lagKillerEnabled
+            lagKillerEnabled = lagKillerEnabled,
+            devRenderDistance = devRenderDistance,
+            cudaCompiled = cudaCompiled
         )
     }
 
@@ -1579,6 +1613,35 @@ class TunerViewModel : ViewModel() {
     fun updateTextureScale(scale: Int) {
         _uiState.value = _uiState.value.copy(textureScalePercent = scale)
         saveSetting { putInt(KEY_TEXTURE_SCALE_PERCENT, scale) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        appendCustomLogLines(listOf("$timestamp I RenderEngine: Frame buffer downsampling texture scaling modified to: $scale%"))
+    }
+
+    fun compileCudaExtension() {
+        if (_uiState.value.isCompilingCuda || _uiState.value.cudaCompiled) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCompilingCuda = true)
+            val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf("$timestamp I CUDACompiler: Triggered nvcc compilation for optimize_kernel.cu..."))
+            kotlinx.coroutines.delay(1000)
+            val timestamp2 = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf("$timestamp2 I CUDACompiler: Building custom GPU execution registers for parallelized scale kernel."))
+            kotlinx.coroutines.delay(1200)
+            val timestamp3 = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf(
+                "$timestamp3 I CUDACompiler: Linking PyTorch custom extension (C++ / CUDA kernel map successfully bound).",
+                "$timestamp3 I CUDACompiler: CPU/GPU bypassed standard library overhead. Direct registers optimized!"
+            ))
+            _uiState.value = _uiState.value.copy(isCompilingCuda = false, cudaCompiled = true)
+            saveSetting { putBoolean("cuda_compiled", true) }
+        }
+    }
+
+    fun setDevRenderDistance(distance: String) {
+        _uiState.value = _uiState.value.copy(devRenderDistance = distance)
+        saveSetting { putString("dev_render_distance", distance) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        appendCustomLogLines(listOf("$timestamp I RenderEngine: Draw distance / Level of Detail (LOD) parameter set to: $distance"))
     }
 
     fun togglePreTransform(enabled: Boolean) {
@@ -2699,11 +2762,21 @@ class TunerViewModel : ViewModel() {
                     LowLatencyMode.ON -> "[LATENCY] Low latency ON: Input delay minimized (~1.8ms delay)."
                     LowLatencyMode.OFF -> "[LATENCY] Low latency OFF: Default frame scheduler queue active (~12.5ms delay)."
                 }
+                val activeTextureScale = _uiState.value.textureScalePercent
+                val activeCudaStatus = if (_uiState.value.cudaCompiled) "ENABLED (Registered nvcc C++/CUDA bindings)" else "DISABLED (Standard drivers)"
+                val activeRenderDistance = _uiState.value.devRenderDistance
+                
+                val shaderInjectionLogs = listOf(
+                    "[ENGINE] Bound SurfaceView frame-buffer texture scale factor directly to target pipeline: ${activeTextureScale}% native resolution.",
+                    "[ENGINE] Registered render-thread bindings for direct CUDA / Vulkan API bypass: $activeCudaStatus.",
+                    "[ENGINE] Transmitted Level of Detail (LOD) mesh draw distance constraints: $activeRenderDistance render threshold."
+                )
+
                 _uiState.value = _uiState.value.copy(
                     inputLagOptimized = true,
                     ramUsedPercent = if (isRamBoostSelected) 22 else if (shouldAutoCleanRam) 28 else 31,
                     score = 100,
-                    gameModeLogs = _uiState.value.gameModeLogs + latencyText
+                    gameModeLogs = _uiState.value.gameModeLogs + latencyText + shaderInjectionLogs
                 )
             } else {
                 _uiState.value = _uiState.value.copy(

@@ -263,6 +263,93 @@ fun TunerDashboardScreen(
                 onDismiss = { viewModel.toggleFloatingApp(appName) }
             )
         }
+
+        // --- MODIFY SYSTEM SETTINGS PERMISSION PROMPT ---
+        if (!state.hasWriteSettingsPermission) {
+            Dialog(
+                onDismissRequest = { /* User must enable it to proceed or exit */ }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .testTag("dialog_modify_settings_permission"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                    border = BorderStroke(1.dp, AlertOrange)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(AlertOrange.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Warning,
+                                contentDescription = "Alert",
+                                tint = AlertOrange,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "Allow Modify System Settings",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            text = "Apex Tuner requires the 'Modify System Settings' permission to optimize device refresh rate, system screen timeout, and hardware parameters dynamically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(
+                            onClick = {
+                                viewModel.openWriteSettingsPermissionScreen(context)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("btn_grant_settings_permission")
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Launch,
+                                    contentDescription = "Open permissions",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "ENABLE IN SETTINGS",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2052,6 +2139,7 @@ fun GameEngineTabContent(
     isTablet: Boolean
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var gamesToShowCount by remember { mutableStateOf(5) }
     val filteredGames = state.localGameLaunchInstalled.filter {
         it.label.contains(searchQuery, ignoreCase = true)
     }
@@ -2306,10 +2394,11 @@ fun GameEngineTabContent(
                         }
                     }
 
+                    val displayedGames = filteredGames.take(gamesToShowCount)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        filteredGames.forEach { game ->
+                        displayedGames.forEach { game ->
                             val gameName = game.label
                             val isRunningThis = state.runningGame == gameName
                             val currentIntensity = state.gameIntensities[gameName] ?: GameLoadIntensity.MODERATE
@@ -2520,6 +2609,40 @@ fun GameEngineTabContent(
                                             )
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        if (filteredGames.size > gamesToShowCount) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = { gamesToShowCount += 5 },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NeonCyan.copy(alpha = 0.12f),
+                                    contentColor = NeonCyan
+                                ),
+                                border = BorderStroke(1.dp, NeonCyan),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("btn_load_more_games")
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Add,
+                                        contentDescription = "Load more games",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "LOAD MORE GAMES (${filteredGames.size - gamesToShowCount} remaining)",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp
+                                    )
                                 }
                             }
                         }
@@ -5237,6 +5360,221 @@ fun DevTweaksTabContent(
                                         color = NeonCyan,
                                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 4.5 GPU KERNEL & ADVANCED SHADER TUNER ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("card_gpu_kernel_tuner"),
+                colors = CardDefaults.cardColors(containerColor = CarbonCard),
+                border = BorderStroke(1.dp, Color(0xFFDEE3EB))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "GPU KERNEL & ADVANCED SHADER TUNER",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = NeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Step below standard rendering stacks to link custom PyTorch C++ / CUDA kernels directly to hardware pipelines, bypassing high-level library overhead.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
+                    )
+
+                    HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(bottom = 14.dp))
+
+                    // GPU CUDA Extension block
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Custom PyTorch CUDA Extension",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "optimize_kernel.cu bypasses general translation runtimes and binds mathematical scalers directly.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray
+                                )
+                            }
+                            
+                            val isCompiling = state.isCompilingCuda
+                            val isCompiled = state.cudaCompiled
+                            
+                            if (isCompiled) {
+                                Surface(
+                                    color = NeonGreen.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "ACTIVE",
+                                        color = NeonGreen,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            } else if (isCompiling) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = NeonCyan,
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Text(
+                                        text = "NVCC...",
+                                        color = NeonCyan,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = { viewModel.compileCudaExtension() },
+                                    modifier = Modifier.testTag("btn_compile_cuda"),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonCyan.copy(alpha = 0.15f),
+                                        contentColor = NeonCyan
+                                    ),
+                                    border = BorderStroke(1.dp, NeonCyan),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text("COMPILE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Texture scaling block
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Frame Buffer Texture Scaling",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = "${state.textureScalePercent}% Scaling",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    color = NeonCyan
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                             Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                             ) {
+                                listOf(
+                                    "25% (Ultra)" to 25,
+                                    "50% (Speed)" to 50,
+                                    "75% (Balanced)" to 75,
+                                    "100% (Native)" to 100
+                                ).forEach { (label, value) ->
+                                    val isSelected = state.textureScalePercent == value
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                viewModel.updateTextureScale(value)
+                                            },
+                                        color = if (isSelected) NeonCyan else Color(0xFFF3F4F9),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, if (isSelected) NeonCyan else Color(0xFFDDE2F1))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 9.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else LightWhite,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Level of Detail Draw Distance Block
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Mesh Render Distance (LOD)",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = LightWhite
+                                )
+                                Text(
+                                    text = state.devRenderDistance,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    color = NeonCyan
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf("Near", "Balanced", "Far").forEach { value ->
+                                    val isSelected = state.devRenderDistance == value
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                viewModel.setDevRenderDistance(value)
+                                            },
+                                        color = if (isSelected) NeonCyan else Color(0xFFF3F4F9),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, if (isSelected) NeonCyan else Color(0xFFDDE2F1))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = value,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else LightWhite
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
