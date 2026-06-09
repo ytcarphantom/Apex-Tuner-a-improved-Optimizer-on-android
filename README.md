@@ -1,4 +1,4 @@
-NEW UPDATE HERE it is not out yet
+NEW UPDATE HERE for 1.7 VERSION IN THE RELEASES
 Thermal Mitigation Target: Increased the target safety clamp FPS target from 30 to 80
 inside TunerViewModel.kt. Telemetry & Logging Consistency: Aligned the output
 feedback text logger (PowerManagerService: Safe Thermal Guard triggered) to log exactly Clamped game engine to 80FPS when the active thermal threshold constraint triggers.
