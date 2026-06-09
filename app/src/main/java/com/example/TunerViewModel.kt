@@ -1811,8 +1811,58 @@ class TunerViewModel : ViewModel() {
     fun setSelectedGpuRenderer(renderer: String) {
         _uiState.value = _uiState.value.copy(selectedGpuRenderer = renderer)
         saveSetting { putString("selected_gpu_renderer", renderer) }
-        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
-        appendCustomLogLines(listOf("$timestamp I HW-Renderer: Switched active GPU renderer pipeline framework to: $renderer."))
+        
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            val logs = mutableListOf<String>()
+            
+            logs.add("$timestamp I HW-Renderer: Selected GPU Renderer target: $renderer.")
+            
+            val rendererType = when (renderer) {
+                "GraphicsROM / SkiaGL" -> "skiagl"
+                "SkiaVulkan" -> "skiavk"
+                else -> ""
+            }
+            
+            logs.add("$timestamp I HW-Renderer: Prepared system-level setprop change: [su -c 'setprop debug.hwui.renderer $rendererType']")
+            
+            try {
+                val process = Runtime.getRuntime().exec("su")
+                val os = java.io.DataOutputStream(process.outputStream)
+                
+                os.writeBytes("setprop debug.hwui.renderer $rendererType\n")
+                os.writeBytes("am crash com.android.systemui\n")
+                os.writeBytes("am force-stop com.android.settings\n")
+                os.writeBytes("exit\n")
+                os.flush()
+                os.close()
+                
+                val errorReader = process.errorStream.bufferedReader()
+                val errorText = errorReader.readText().trim()
+                val result = process.waitFor()
+                
+                if (result == 0) {
+                    logs.add("$timestamp I HW-Renderer: Root command succeeded! Renderer property successfully updated to: $rendererType.")
+                    logs.add("$timestamp I HW-Renderer: System UI thread crashed/reloading to apply rendering pipeline change.")
+                } else {
+                    logs.add("$timestamp E HW-Renderer: Root request returned non-zero code ($result). Error: $errorText")
+                    if (errorText.contains("not found") || errorText.isEmpty()) {
+                        logs.add("$timestamp W HW-Renderer: Device lacks root 'su' binaries. Graphics pipeline rendering command was simulated/saved.")
+                        logs.add("$timestamp I HW-Renderer: If running on non-rooted devices, use Shizuku or run via ADB Shell:")
+                        logs.add("  adb shell setprop debug.hwui.renderer $rendererType")
+                    }
+                }
+            } catch (e: Exception) {
+                logs.add("$timestamp E HW-Renderer: Shell process execution failed: ${e.javaClass.simpleName} - su binary not found.")
+                logs.add("$timestamp I HW-Renderer: [FALLBACK SETUP] Please run the following ADB commands via PC or Termux:")
+                logs.add("  adb shell setprop debug.hwui.renderer ${if (rendererType.isEmpty()) "default" else rendererType}")
+                logs.add("  adb shell am crash com.android.systemui")
+            }
+            
+            val gameLogs = _uiState.value.gameModeLogs + logs.map { "[$timestamp-GPU] $it" }
+            _uiState.value = _uiState.value.copy(gameModeLogs = gameLogs)
+            appendCustomLogLines(logs)
+        }
     }
 
     fun setApClockLimitationEnabled(enabled: Boolean) {

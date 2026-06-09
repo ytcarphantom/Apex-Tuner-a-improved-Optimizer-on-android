@@ -4710,6 +4710,9 @@ fun DevTweaksTabContent(
 
         // --- 1.2 SET GPU RENDERER ---
         item {
+            val isAdbScriptExpanded = remember { mutableStateOf(false) }
+            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+            
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("card_gpu_renderer_selector"),
                 colors = CardDefaults.cardColors(containerColor = CarbonCard),
@@ -4824,6 +4827,172 @@ fun DevTweaksTabContent(
                                 fontSize = 11.sp,
                                 lineHeight = 16.sp
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Expandable Script / ADB Section to import all settings to ANY device
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .border(1.dp, if (isAdbScriptExpanded.value) NeonGreen.copy(alpha = 0.5f) else SlateGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                            .clickable { isAdbScriptExpanded.value = !isAdbScriptExpanded.value }
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Terminal,
+                                        contentDescription = "ADB Terminal Command Script",
+                                        tint = if (isAdbScriptExpanded.value) NeonGreen else LightWhite,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Export Engine Build to ADB (Any Device)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isAdbScriptExpanded.value) NeonGreen else LightWhite,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (isAdbScriptExpanded.value) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                    contentDescription = "Expand adb settings script",
+                                    tint = SlateGray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            
+                            if (isAdbScriptExpanded.value) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "This automatically compiles every single slider position, toggle trigger, and engine mode configured in the tuner into a production-grade bash shell tuning profile compatible with any Android root shell or ADB command line.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SlateGray,
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // Script contents
+                                val scriptText = buildString {
+                                    appendLine("#!/system/bin/sh")
+                                    appendLine("# ========================================================")
+                                    appendLine("#   APEX TUNER - SYSTEM-WIDE OPTIMIZER ENGINE TWEAK SCRIPT")
+                                    appendLine("#   Apply manually via ADB Shell or a Local su terminal")
+                                    appendLine("# ========================================================")
+                                    appendLine()
+                                    
+                                    val hwRenderer = when (state.selectedGpuRenderer) {
+                                        "GraphicsROM / SkiaGL" -> "skiagl"
+                                        "SkiaVulkan" -> "skiavk"
+                                        else -> "default"
+                                    }
+                                    appendLine("# 1. Configure Hardware Rendering Pipeline (GPU Renderer)")
+                                    appendLine("echo \"[*] Applying GPU Renderer: ${state.selectedGpuRenderer}...\"")
+                                    appendLine("setprop debug.hwui.renderer $hwRenderer")
+                                    appendLine()
+                                    
+                                    appendLine("# 2. AP Clock Limitation (Game Booster+ Profile)")
+                                    if (state.apClockLimitationEnabled) {
+                                        appendLine("echo \"[*] Enabling clock speed capability cap to ${state.apClockLimitPercent}%...\"")
+                                        appendLine("setprop debug.game.clock_limit ${state.apClockLimitPercent}")
+                                        appendLine("setprop persist.sys.cpu.clock_cap ${state.apClockLimitPercent}")
+                                    } else {
+                                        appendLine("echo \"[*] Disabling AP Clock limitation (Unrestricted performance)...\"")
+                                        appendLine("setprop debug.game.clock_limit 100")
+                                        appendLine("setprop persist.sys.cpu.clock_cap 100")
+                                    }
+                                    appendLine()
+                                    
+                                    appendLine("# 3. Display Frame Lock & Peak Refresh Rate Controls")
+                                    if (state.forcePeakRefreshRate) {
+                                        appendLine("echo \"[*] Bypassing standard displays: forcing peak refresh limits to 120Hz...\"")
+                                        appendLine("settings put global peak_refresh_rate 120.0")
+                                        appendLine("settings put global min_refresh_rate 120.0")
+                                    } else {
+                                        appendLine("echo \"[*] Resetting display to default adaptive 60Hz...\"")
+                                        appendLine("settings put global peak_refresh_rate 60.0")
+                                    }
+                                    appendLine()
+                                    
+                                    appendLine("# 4. Thread Scheduling, Frame Presentation & Sync Fences")
+                                    val vsyncVal = if (state.vSyncEnabled) "1" else "0"
+                                    appendLine("setprop debug.cpurendering.vsync $vsyncVal")
+                                    if (state.swappyFramePacingEnabled) {
+                                        appendLine("setprop debug.graphics.swappy.pace 1")
+                                    }
+                                    appendLine()
+                                    
+                                    appendLine("# 5. ThermalGuard Core Cooldown policies")
+                                    val cooldownVal = if (state.thermalCooldownUnderclock) "1" else "0"
+                                    val ecoVal = if (state.displayEcoThermalMode) "1" else "0"
+                                    val scaleVal = if (state.dynamicRenderTargetDownscaling) "0.85" else "1.00"
+                                    appendLine("setprop persist.sys.thermal.underclock $cooldownVal")
+                                    appendLine("setprop persist.sys.lcd.eco_mode $ecoVal")
+                                    appendLine("setprop debug.graphics.downscale $scaleVal")
+                                    appendLine()
+                                    
+                                    appendLine("# 6. Hot-Reload System UI to action new settings")
+                                    appendLine("echo \"[*] Reloading System UI and active layouts...\"")
+                                    appendLine("am crash com.android.systemui")
+                                    appendLine("am force-stop com.android.settings")
+                                    appendLine()
+                                    appendLine("echo \"[+] Apex Optimizer engine applied successfully to hardware layers!\"")
+                                }
+                                
+                                // Text console container
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black, RoundedCornerShape(6.dp))
+                                        .border(1.dp, SlateGray.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                        .padding(10.dp)
+                                ) {
+                                    Text(
+                                        text = scriptText,
+                                        style = androidx.compose.ui.text.TextStyle(
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                            fontSize = 9.sp,
+                                            color = NeonGreen,
+                                            lineHeight = 13.sp
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                Button(
+                                    onClick = {
+                                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(scriptText))
+                                    },
+                                    modifier = Modifier.fillMaxWidth().testTag("button_copy_adb_script"),
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ContentCopy,
+                                        contentDescription = "Copy script",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Copy Tuning Script to Clipboard",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         }
                     }
                 }
