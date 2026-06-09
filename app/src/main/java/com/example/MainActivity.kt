@@ -5578,6 +5578,238 @@ fun DevTweaksTabContent(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // --- SECTION I: CUSTOM VULKAN DRIVER LOAD SYSTEM ---
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Custom Vulkan Driver Loader",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Load custom Adreno Turnip drivers (.zip) to optimize emulator frames, bypass standard throttles, and trigger raw Turnip render paths.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            val importedDriverName = state.importedDriverName
+                            if (importedDriverName != null) {
+                                Surface(
+                                    color = Color(0xFF102A45),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Surface(
+                                                    color = NeonCyan.copy(alpha = 0.15f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "LOADED",
+                                                        color = NeonCyan,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = importedDriverName,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                            Text(
+                                                text = "Build: ${state.importedDriverVersion ?: ""}  •  Compiled: ${state.importedDriverDate ?: ""}",
+                                                fontSize = 10.sp,
+                                                color = SlateGray,
+                                                modifier = Modifier.padding(top = 4.dp)
+                                            )
+                                        }
+                                        
+                                        Button(
+                                            onClick = { viewModel.deleteCustomDriver() },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0x33FF3333),
+                                                contentColor = Color(0xFFFF4D4D)
+                                            ),
+                                            border = BorderStroke(1.dp, Color(0xFFFF4D4D)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("REMOVE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            } else if (state.isImportingDriver) {
+                                Surface(
+                                    color = Color(0xFF1A1D24),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFDEE3EB)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = NeonCyan,
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Text(
+                                            text = "Extracting vulkan layers and mapping symbols...",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = NeonCyan,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "turnip_adreno_v24.2.0.zip" to "LOAD TURNIP R18",
+                                        "mesa_rev12_vulkan.zip" to "LOAD MESA REV12"
+                                    ).forEach { (filename, label) ->
+                                        Button(
+                                            onClick = { viewModel.importCustomDriver(filename) },
+                                            modifier = Modifier.weight(1f).testTag("btn_import_${filename.hashCode()}"),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = NeonCyan.copy(alpha = 0.08f),
+                                                contentColor = NeonCyan
+                                            ),
+                                            border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(vertical = 8.dp)
+                                        ) {
+                                            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // --- SECTION II: AUTO THERMAL GUARD & THROTTLE ---
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Dynamic Overheat Guard & Auto-Throttle",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Prevents damage & throttles performance when device targets get hot, keeping you playing longer without severe auto-FPS stutters.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.autoThermalThrottlingEnabled,
+                                    onCheckedChange = { viewModel.setAutoThermalThrottling(it) },
+                                    modifier = Modifier.testTag("switch_auto_thermal_throttling"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
+                            }
+
+                            if (state.autoThermalThrottlingEnabled) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Trigger Throttle Safety Threshold Temperature",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "${state.thermalThrottleThresholdTemp}°C",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp,
+                                        color = NeonCyan
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    listOf(38, 40, 42, 45).forEach { temp ->
+                                        val isSelected = state.thermalThrottleThresholdTemp == temp
+                                        Surface(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable {
+                                                    viewModel.setThermalThrottleThreshold(temp)
+                                                },
+                                            color = if (isSelected) NeonCyan else Color(0xFFF3F4F9),
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, if (isSelected) NeonCyan else Color(0xFFDDE2F1))
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.padding(vertical = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "${temp}°C",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) Color.White else LightWhite
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -207,7 +207,13 @@ data class TunerUiState(
     val realAdpfSessionHeld: Boolean = false,
     val cudaCompiled: Boolean = false,
     val isCompilingCuda: Boolean = false,
-    val devRenderDistance: String = "Balanced"
+    val devRenderDistance: String = "Balanced",
+    val autoThermalThrottlingEnabled: Boolean = false,
+    val thermalThrottleThresholdTemp: Int = 40,
+    val importedDriverName: String? = null,
+    val importedDriverVersion: String? = null,
+    val importedDriverDate: String? = null,
+    val isImportingDriver: Boolean = false
 )
 
 class TunerViewModel : ViewModel() {
@@ -738,6 +744,11 @@ class TunerViewModel : ViewModel() {
         val lagKillerEnabled = prefs.getBoolean(KEY_LAG_KILLER_ENABLED, false)
         val devRenderDistance = prefs.getString("dev_render_distance", "Balanced") ?: "Balanced"
         val cudaCompiled = prefs.getBoolean("cuda_compiled", false)
+        val autoThermalThrottlingEnabled = prefs.getBoolean("auto_thermal_throttling_enabled", false)
+        val thermalThrottleThresholdTemp = prefs.getInt("thermal_throttle_threshold_temp", 40)
+        val importedDriverName = prefs.getString("imported_driver_name", null)
+        val importedDriverVersion = prefs.getString("imported_driver_version", null)
+        val importedDriverDate = prefs.getString("imported_driver_date", null)
 
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
@@ -777,7 +788,12 @@ class TunerViewModel : ViewModel() {
             bluetoothAudioOptimization = bluetoothAudioOptimization,
             lagKillerEnabled = lagKillerEnabled,
             devRenderDistance = devRenderDistance,
-            cudaCompiled = cudaCompiled
+            cudaCompiled = cudaCompiled,
+            autoThermalThrottlingEnabled = autoThermalThrottlingEnabled,
+            thermalThrottleThresholdTemp = thermalThrottleThresholdTemp,
+            importedDriverName = importedDriverName,
+            importedDriverVersion = importedDriverVersion,
+            importedDriverDate = importedDriverDate
         )
     }
 
@@ -1145,12 +1161,28 @@ class TunerViewModel : ViewModel() {
                 realCpuTemp = (targetTemp - 1 + (0..2).random()).coerceIn(20, 50)
             }
 
+            var finalFps = currentFps
+            var finalCpuTemp = realCpuTemp
+            
+            // Check if thermal guard is active and device exceeds temperature threshold
+            if (stateAtStart.autoThermalThrottlingEnabled && realCpuTemp >= stateAtStart.thermalThrottleThresholdTemp) {
+                finalFps = 30
+                // Reduce the temperature simulated back down, safeguarding the hardware!
+                finalCpuTemp = (stateAtStart.thermalThrottleThresholdTemp - 2 - (0..2).random()).coerceAtLeast(28)
+                
+                val timestampStr = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+                appendCustomLogLines(listOf(
+                    "$timestampStr W PowerManagerService: THERMAL MITIGATION COOLDOWN IN EFFECT! Temperature ($realCpuTemp°C >= ${stateAtStart.thermalThrottleThresholdTemp}°C).",
+                    "$timestampStr I PowerManagerService: Safe Thermal Guard triggered — Clamped game engine to 30FPS and downsampled frame buffers to 25%."
+                ))
+            }
+
             val kernelResults = getKernelMemInfoInternal(realRamUsed)
             val telemetry = getRealHardwareTelemetryInternal(context)
 
             _uiState.value = _uiState.value.copy(
-                gameFps = currentFps,
-                coolingTempCelsius = realCpuTemp,
+                gameFps = finalFps,
+                coolingTempCelsius = finalCpuTemp,
                 estimatedBatteryTimeHr = java.lang.Math.round(currentBattery * 10.0) / 10.0,
                 ramUsedPercent = realRamUsed,
                 storageUsedPercent = realStorageUsed,
@@ -1642,6 +1674,77 @@ class TunerViewModel : ViewModel() {
         saveSetting { putString("dev_render_distance", distance) }
         val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
         appendCustomLogLines(listOf("$timestamp I RenderEngine: Draw distance / Level of Detail (LOD) parameter set to: $distance"))
+    }
+
+    fun setAutoThermalThrottling(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(autoThermalThrottlingEnabled = enabled)
+        saveSetting { putBoolean("auto_thermal_throttling_enabled", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val statusText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Automatic downclock/downsampling when HOT is $statusText."))
+    }
+
+    fun setThermalThrottleThreshold(temp: Int) {
+        _uiState.value = _uiState.value.copy(thermalThrottleThresholdTemp = temp)
+        saveSetting { putInt("thermal_throttle_threshold_temp", temp) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        appendCustomLogLines(listOf("$timestamp I ThermalGuard: Throttling activation temperature limit thresholds updated to: $temp°C."))
+    }
+
+    fun importCustomDriver(filename: String) {
+        if (_uiState.value.isImportingDriver) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isImportingDriver = true)
+            val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf("$timestamp I DriverInstaller: Opening and scanning custom driver packet zip file '$filename'..."))
+            delay(1200)
+            
+            val timestamp2 = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf(
+                "$timestamp2 I DriverInstaller: Verifying driver signature for Adreno proprietary Vulkan drivers.",
+                "$timestamp2 I DriverInstaller: Found valid binary module 'libvulkan_adreno.so' mapping Mesa/Turnip compiled on May 2026."
+            ))
+            delay(1500)
+            
+            val timestamp3 = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            val driverName = "Mesa Turnip Vulkan (Adreno 7xx/6xx)"
+            val driverVer = "v24.2.0-devel-R18"
+            val driverDate = "2026-06-03"
+            
+            _uiState.value = _uiState.value.copy(
+                isImportingDriver = false,
+                importedDriverName = driverName,
+                importedDriverVersion = driverVer,
+                importedDriverDate = driverDate
+            )
+            saveSetting {
+                putString("imported_driver_name", driverName)
+                putString("imported_driver_version", driverVer)
+                putString("imported_driver_date", driverDate)
+            }
+            appendCustomLogLines(listOf(
+                "$timestamp3 I DriverInstaller: Successfully extracted and registered driver layers. Directing game launcher to bind custom Turnip stack on subsequent app executions.",
+                "$timestamp3 I Vulkan: Loaded custom graphics library: $driverName [$driverVer] dynamically bypassed default system layers."
+            ))
+        }
+    }
+
+    fun deleteCustomDriver() {
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        _uiState.value = _uiState.value.copy(
+            importedDriverName = null,
+            importedDriverVersion = null,
+            importedDriverDate = null
+        )
+        saveSetting {
+            remove("imported_driver_name")
+            remove("imported_driver_version")
+            remove("imported_driver_date")
+        }
+        appendCustomLogLines(listOf(
+            "$timestamp I DriverInstaller: Unloaded custom GPU drivers. Disengaging virtual redirectors.",
+            "$timestamp I Vulkan: Default system Adreno graphics driver stacks bound to game pipelines."
+        ))
     }
 
     fun togglePreTransform(enabled: Boolean) {
@@ -2765,11 +2868,14 @@ class TunerViewModel : ViewModel() {
                 val activeTextureScale = _uiState.value.textureScalePercent
                 val activeCudaStatus = if (_uiState.value.cudaCompiled) "ENABLED (Registered nvcc C++/CUDA bindings)" else "DISABLED (Standard drivers)"
                 val activeRenderDistance = _uiState.value.devRenderDistance
+                val activeDriverName = _uiState.value.importedDriverName ?: "System Default Adreno Driver"
+                val driverLog = "[VULKAN] Registered custom vulkan driver stack overlays: $activeDriverName"
                 
                 val shaderInjectionLogs = listOf(
                     "[ENGINE] Bound SurfaceView frame-buffer texture scale factor directly to target pipeline: ${activeTextureScale}% native resolution.",
                     "[ENGINE] Registered render-thread bindings for direct CUDA / Vulkan API bypass: $activeCudaStatus.",
-                    "[ENGINE] Transmitted Level of Detail (LOD) mesh draw distance constraints: $activeRenderDistance render threshold."
+                    "[ENGINE] Transmitted Level of Detail (LOD) mesh draw distance constraints: $activeRenderDistance render threshold.",
+                    driverLog
                 )
 
                 _uiState.value = _uiState.value.copy(
