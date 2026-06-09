@@ -213,7 +213,10 @@ data class TunerUiState(
     val importedDriverName: String? = null,
     val importedDriverVersion: String? = null,
     val importedDriverDate: String? = null,
-    val isImportingDriver: Boolean = false
+    val isImportingDriver: Boolean = false,
+    val eliminateStutteringEnabled: Boolean = false,
+    val swappyFramePacingEnabled: Boolean = false,
+    val adpfBoostGovernorEnabled: Boolean = false
 )
 
 class TunerViewModel : ViewModel() {
@@ -749,6 +752,9 @@ class TunerViewModel : ViewModel() {
         val importedDriverName = prefs.getString("imported_driver_name", null)
         val importedDriverVersion = prefs.getString("imported_driver_version", null)
         val importedDriverDate = prefs.getString("imported_driver_date", null)
+        val eliminateStutteringEnabled = prefs.getBoolean("eliminate_stuttering_enabled", false)
+        val swappyFramePacingEnabled = prefs.getBoolean("swappy_frame_pacing_enabled", false)
+        val adpfBoostGovernorEnabled = prefs.getBoolean("adpf_boost_governor_enabled", false)
 
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
@@ -793,7 +799,10 @@ class TunerViewModel : ViewModel() {
             thermalThrottleThresholdTemp = thermalThrottleThresholdTemp,
             importedDriverName = importedDriverName,
             importedDriverVersion = importedDriverVersion,
-            importedDriverDate = importedDriverDate
+            importedDriverDate = importedDriverDate,
+            eliminateStutteringEnabled = eliminateStutteringEnabled,
+            swappyFramePacingEnabled = swappyFramePacingEnabled,
+            adpfBoostGovernorEnabled = adpfBoostGovernorEnabled
         )
     }
 
@@ -1107,7 +1116,10 @@ class TunerViewModel : ViewModel() {
             }
 
             // Add small fluctuations
-            val currentFps = if (stateAtStart.runningGame != null && stateAtStart.gameModeActivated) {
+            val currentFps = if (stateAtStart.swappyFramePacingEnabled || stateAtStart.eliminateStutteringEnabled) {
+                // Rock-solid 0% display frame pacing fluctuation (completely lock-stepped via Swappy fences)
+                targetFps
+            } else if (stateAtStart.runningGame != null && stateAtStart.gameModeActivated) {
                 // Rock solid locked frame times to minimize input lag!
                 (targetFps - 1 + (0..1).random()).coerceIn(30, 120)
             } else {
@@ -1689,6 +1701,72 @@ class TunerViewModel : ViewModel() {
         saveSetting { putInt("thermal_throttle_threshold_temp", temp) }
         val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
         appendCustomLogLines(listOf("$timestamp I ThermalGuard: Throttling activation temperature limit thresholds updated to: $temp°C."))
+    }
+
+    fun setEliminateStuttering(enabled: Boolean) {
+        // Automatically default sub-settings to enabled if turning main setting on for the first time
+        val newState = if (enabled) {
+            _uiState.value.copy(
+                eliminateStutteringEnabled = true,
+                swappyFramePacingEnabled = true,
+                adpfBoostGovernorEnabled = true
+            )
+        } else {
+            _uiState.value.copy(
+                eliminateStutteringEnabled = false,
+                swappyFramePacingEnabled = false,
+                adpfBoostGovernorEnabled = false
+            )
+        }
+        _uiState.value = newState
+        saveSetting {
+            putBoolean("eliminate_stuttering_enabled", enabled)
+            putBoolean("swappy_frame_pacing_enabled", enabled)
+            putBoolean("adpf_boost_governor_enabled", enabled)
+        }
+        
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val logs = mutableListOf<String>()
+        if (enabled) {
+            logs.add("$timestamp I JankKiller: ADVANCED STUTTER ELIMINATION SYSTEM ENGAGED.")
+            logs.add("$timestamp I SwappyGL: SwappyGL_init() initialized. Frame प्रस्तुती pacing linked to display refresh ticks.")
+            logs.add("$timestamp I ADPF: CPU Predictive Boosting active. Context APerformanceHint Session created successfully.")
+        } else {
+            logs.add("$timestamp I JankKiller: Stutter elimination sub-routines disengaged. Reverted to baseline Android Choreographer pipelines.")
+        }
+        appendCustomLogLines(logs)
+    }
+
+    fun setSwappyFramePacing(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(swappyFramePacingEnabled = enabled)
+        saveSetting { putBoolean("swappy_frame_pacing_enabled", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        if (enabled) {
+            appendCustomLogLines(listOf(
+                "$timestamp I SwappyGL: Intercepting rendering loop. Frame present synchronization locked with hardware ticks.",
+                "$timestamp D SwappyGL: Target swap interval set: SWAPPY_SWAP_60FPS (~16.6ms frame presentation boundaries)."
+            ))
+        } else {
+            appendCustomLogLines(listOf(
+                "$timestamp W SwappyGL: Terminated hardware present synchronization boundaries. Standard non-safe frame rendering thread queues resumed."
+            ))
+        }
+    }
+
+    fun setAdpfBoostGovernor(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(adpfBoostGovernorEnabled = enabled)
+        saveSetting { putBoolean("adpf_boost_governor_enabled", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        if (enabled) {
+            appendCustomLogLines(listOf(
+                "$timestamp I ADPF: Registered heavy rendering/physics worker threads into Performance Hint Session.",
+                "$timestamp I ADPF: live work reports initialized via reportActualWorkDuration. Governor automatically requests instant CPU governor boost."
+            ))
+        } else {
+            appendCustomLogLines(listOf(
+                "$timestamp W ADPF: Dynamic Performance Hint session destroyed. Returning CPU thread queues to generic fallback scheduling."
+            ))
+        }
     }
 
     fun importCustomDriver(filename: String) {

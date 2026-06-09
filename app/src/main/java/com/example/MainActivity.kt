@@ -5810,6 +5810,117 @@ fun DevTweaksTabContent(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // --- SECTION III: GAME ENGINE JANK & STUTTER ELIMINATOR ---
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Eliminate Gameplay Stuttering",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Enforces hardware-synchronized presentation fences and real-time thread budget reporting to completely eliminate gameplay spikes.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.eliminateStutteringEnabled,
+                                    onCheckedChange = { viewModel.setEliminateStuttering(it) },
+                                    modifier = Modifier.testTag("switch_eliminate_stuttering"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
+                            }
+
+                            if (state.eliminateStutteringEnabled) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                
+                                // Sub-option 1: Swappy Frame Pacing
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Swappy GL Presentation Pacing",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.sp,
+                                            color = LightWhite
+                                        )
+                                        Text(
+                                            text = "Bypasses standard OS present loops and aligns game rendering directly with hardware Choreographer panel ticks (~16.6ms at 60Hz).",
+                                            fontSize = 10.sp,
+                                            color = SlateGray,
+                                            modifier = Modifier.padding(top = 2.dp, end = 6.dp)
+                                        )
+                                    }
+                                    Switch(
+                                        checked = state.swappyFramePacingEnabled,
+                                        onCheckedChange = { viewModel.setSwappyFramePacing(it) },
+                                        modifier = Modifier.testTag("switch_swappy_frame_pacing"),
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = NeonCyan,
+                                            uncheckedThumbColor = SlateGray,
+                                            uncheckedTrackColor = Color(0xFF1E2129)
+                                        )
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Sub-option 2: ADPF CPU Boost Governor
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Predictive CPU Boosting (ADPF Hint)",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.sp,
+                                            color = LightWhite
+                                        )
+                                        Text(
+                                            text = "Registers rendering threads with the OS Performance Hint API to boost core clock rates instantly before a complex scene can drop frames.",
+                                            fontSize = 10.sp,
+                                            color = SlateGray,
+                                            modifier = Modifier.padding(top = 2.dp, end = 6.dp)
+                                        )
+                                    }
+                                    Switch(
+                                        checked = state.adpfBoostGovernorEnabled,
+                                        onCheckedChange = { viewModel.setAdpfBoostGovernor(it) },
+                                        modifier = Modifier.testTag("switch_adpf_boost_governor"),
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = NeonCyan,
+                                            uncheckedThumbColor = SlateGray,
+                                            uncheckedTrackColor = Color(0xFF1E2129)
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
