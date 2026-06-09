@@ -1155,6 +1155,21 @@ class TunerViewModel : ViewModel() {
                 }
             }
 
+            // Apply AP Clock Limitation (Game Booster+) adjustments
+            if (stateAtStart.apClockLimitationEnabled) {
+                val ratio = stateAtStart.apClockLimitPercent / 100.0
+                // AP Clock Limitation caps maximum CPU/GPU clock speeds to the selected percent capacity
+                targetFps = (targetFps * ratio).toInt().coerceAtLeast(24)
+                
+                // By forcing lower clock speeds, the phone draws less power and generates significantly less heat
+                val tempReduction = ((100 - stateAtStart.apClockLimitPercent) * 0.18).toInt().coerceAtLeast(2)
+                targetTemp -= tempReduction
+                
+                // Extends battery life (more remaining hours of gameplay)
+                val batteryBonus = ((100 - stateAtStart.apClockLimitPercent) * 0.12)
+                targetBattery += batteryBonus
+            }
+
             // Add small fluctuations
             val currentFps = if (stateAtStart.swappyFramePacingEnabled || stateAtStart.eliminateStutteringEnabled) {
                 // Rock-solid 0% display frame pacing fluctuation (completely lock-stepped via Swappy fences)
