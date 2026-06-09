@@ -4746,6 +4746,140 @@ fun DevTweaksTabContent(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // --- DYNAMIC GRAPHICS HARDWARE CORE AUTO-TUNER SECTION ---
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .border(1.dp, if (state.autoGpuOptimized) NeonGreen.copy(alpha = 0.4f) else NeonCyan.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "DYNAMIC DEVICE HW TUNER",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.sp,
+                                    color = if (state.autoGpuOptimized) NeonGreen else NeonCyan,
+                                    letterSpacing = 1.sp
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (state.autoGpuOptimized) NeonGreen.copy(alpha = 0.15f) else SlateGray.copy(alpha = 0.15f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (state.autoGpuOptimized) "OPTIMIZED" else "READY",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                        color = if (state.autoGpuOptimized) NeonGreen else SlateGray
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "Your physical hardware profile:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                fontSize = 11.sp
+                            )
+
+                            // Display current device chip / GPU details
+                            Text(
+                                text = state.detectedGpuInfo,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            if (state.autoGpuOptimizing) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = NeonCyan,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Querying silicon gates & locking core registers...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = NeonCyan,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = { viewModel.autoOptimizeGpuForDevice() },
+                                    modifier = Modifier.fillMaxWidth().testTag("button_auto_tune_gpu"),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (state.autoGpuOptimized) NeonGreen.copy(alpha = 0.2f) else NeonCyan
+                                    ),
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = if (state.autoGpuOptimized) BorderStroke(1.dp, NeonGreen) else null
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.FlashOn,
+                                        contentDescription = "Tune graphics core",
+                                        tint = if (state.autoGpuOptimized) NeonGreen else Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (state.autoGpuOptimized) "Re-Optimize GPU Core" else "Optimize GPU for My Device",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (state.autoGpuOptimized) NeonGreen else Color.White
+                                    )
+                                }
+                            }
+
+                            if (state.autoGpuOptimizationLogs.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black, RoundedCornerShape(6.dp))
+                                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                        .padding(10.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        state.autoGpuOptimizationLogs.forEach { log ->
+                                            Text(
+                                                text = log,
+                                                style = androidx.compose.ui.text.TextStyle(
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                    fontSize = 9.sp,
+                                                    color = if (log.contains("[SUCCESS]") || log.contains("succeeded")) NeonGreen else if (log.contains("E ")) Color.Red else NeonCyan,
+                                                    lineHeight = 13.sp
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     // Renderer selectors (segmented / row selection)
                     val options = listOf("Default", "GraphicsROM / SkiaGL", "SkiaVulkan")
