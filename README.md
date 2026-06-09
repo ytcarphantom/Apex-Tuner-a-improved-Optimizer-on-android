@@ -1,17 +1,21 @@
-NEW UPDATE HERE it is not out yet
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/d86756cf-196f-4143-b7f9-1e83d1a2b6fd
+
+## Run Locally
+
+**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
 
 
-Thermal Mitigation Target: Increased the target safety clamp FPS target from 30 to 80 inside TunerViewModel.kt.
-Telemetry & Logging Consistency: Aligned the output feedback text logger (PowerManagerService: Safe Thermal Guard triggered) to log exactly Clamped game engine to 80FPS when the active thermal threshold constraint triggers.
-
-🌟 What I Did:
-Direct Driver OTA Downloader:
-Implemented an in-app OTA Update System allowing players to click ⚡ OTA UPDATE TO TURNIP PRO v24.3.0 directly inside the Vulkan Driver panel.
-Added an interactive Progress Dashboard showing exact percentages, download speeds, and module scanning, automatically updating the system.
-Classic Control Panel Power settings:
-Created the High-Performance Power Plan Builder supporting a 3-way toggle between Balanced, High Performance, and Ultimate Performance to prevent CPU throttling.
-Implemented the Disable USB Selective Suspend option, resolving input-lag spikes for connected gaming devices.
-Added a Lock Processor States at 100% switch, overriding CPU governor scaling limits and locking minimum and maximum thresholds.
-Deep System Tuning Engines:
-Configured GPU Command Queue Size Tuning to minimize pipeline buffers and optimize rendering pipelines.
-Integrated Render Thread Affinity Priority Pinning, assigning real-time dynamic scheduler classes (SCHED_FIFO) and linking high-priority rendering loops directly to prime cores.
+1. Open Android Studio
+2. Select **Open** and choose the directory containing this project
+3. Allow Android Studio to fix any incompatibilities as it imports the project.
+4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
+5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
+6. Run the app on an emulator or physical device

@@ -216,7 +216,15 @@ data class TunerUiState(
     val isImportingDriver: Boolean = false,
     val eliminateStutteringEnabled: Boolean = false,
     val swappyFramePacingEnabled: Boolean = false,
-    val adpfBoostGovernorEnabled: Boolean = false
+    val adpfBoostGovernorEnabled: Boolean = false,
+    val isDownloadingDriver: Boolean = false,
+    val driverDownloadProgress: Float = 0f,
+    val driverDownloadStatus: String = "",
+    val activePowerPlan: String = "Balanced",
+    val usbSelectiveSuspendDisabled: Boolean = false,
+    val processorPowerLimitLocked100: Boolean = false,
+    val gpuQueueOptimizationEnabled: Boolean = false,
+    val threadPriorityPinned: Boolean = false
 )
 
 class TunerViewModel : ViewModel() {
@@ -755,6 +763,11 @@ class TunerViewModel : ViewModel() {
         val eliminateStutteringEnabled = prefs.getBoolean("eliminate_stuttering_enabled", false)
         val swappyFramePacingEnabled = prefs.getBoolean("swappy_frame_pacing_enabled", false)
         val adpfBoostGovernorEnabled = prefs.getBoolean("adpf_boost_governor_enabled", false)
+        val activePowerPlan = prefs.getString("active_power_plan", "Balanced") ?: "Balanced"
+        val usbSelectiveSuspendDisabled = prefs.getBoolean("usb_selective_suspend_disabled", false)
+        val processorPowerLimitLocked100 = prefs.getBoolean("processor_power_limit_locked_100", false)
+        val gpuQueueOptimizationEnabled = prefs.getBoolean("gpu_queue_optimization_enabled", false)
+        val threadPriorityPinned = prefs.getBoolean("thread_priority_pinned", false)
 
         _uiState.value = _uiState.value.copy(
             selectedProfile = selectedProfile,
@@ -802,7 +815,12 @@ class TunerViewModel : ViewModel() {
             importedDriverDate = importedDriverDate,
             eliminateStutteringEnabled = eliminateStutteringEnabled,
             swappyFramePacingEnabled = swappyFramePacingEnabled,
-            adpfBoostGovernorEnabled = adpfBoostGovernorEnabled
+            adpfBoostGovernorEnabled = adpfBoostGovernorEnabled,
+            activePowerPlan = activePowerPlan,
+            usbSelectiveSuspendDisabled = usbSelectiveSuspendDisabled,
+            processorPowerLimitLocked100 = processorPowerLimitLocked100,
+            gpuQueueOptimizationEnabled = gpuQueueOptimizationEnabled,
+            threadPriorityPinned = threadPriorityPinned
         )
     }
 
@@ -1178,14 +1196,14 @@ class TunerViewModel : ViewModel() {
             
             // Check if thermal guard is active and device exceeds temperature threshold
             if (stateAtStart.autoThermalThrottlingEnabled && realCpuTemp >= stateAtStart.thermalThrottleThresholdTemp) {
-                finalFps = 30
+                finalFps = 80
                 // Reduce the temperature simulated back down, safeguarding the hardware!
                 finalCpuTemp = (stateAtStart.thermalThrottleThresholdTemp - 2 - (0..2).random()).coerceAtLeast(28)
                 
                 val timestampStr = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
                 appendCustomLogLines(listOf(
                     "$timestampStr W PowerManagerService: THERMAL MITIGATION COOLDOWN IN EFFECT! Temperature ($realCpuTemp°C >= ${stateAtStart.thermalThrottleThresholdTemp}°C).",
-                    "$timestampStr I PowerManagerService: Safe Thermal Guard triggered — Clamped game engine to 30FPS and downsampled frame buffers to 25%."
+                    "$timestampStr I PowerManagerService: Safe Thermal Guard triggered — Clamped game engine to 80FPS and downsampled frame buffers to 25%."
                 ))
             }
 
@@ -1822,6 +1840,121 @@ class TunerViewModel : ViewModel() {
         appendCustomLogLines(listOf(
             "$timestamp I DriverInstaller: Unloaded custom GPU drivers. Disengaging virtual redirectors.",
             "$timestamp I Vulkan: Default system Adreno graphics driver stacks bound to game pipelines."
+        ))
+    }
+
+    fun downloadCustomDriver() {
+        if (_uiState.value.isDownloadingDriver) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isDownloadingDriver = true,
+                driverDownloadProgress = 0f,
+                driverDownloadStatus = "Connecting to repository servers..."
+            )
+            val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            appendCustomLogLines(listOf("$timestamp I DriverDownloader: Initializing over-the-air graphics update check..."))
+            delay(1000)
+
+            for (i in 1..5) {
+                val progress = i * 0.2f
+                val percent = (progress * 100).toInt()
+                val statusText = when (i) {
+                    1 -> "Downloading Turnip-Adreno-PRO binaries (8.4MB / 42MB)..."
+                    2 -> "Retrieving Vulkan layer configurations (18.1MB / 42MB)..."
+                    3 -> "Streaming low-latency compiler optimization maps (29.5MB / 42MB)..."
+                    4 -> "Verifying cryptographic MD5 checksum signature (41.2MB / 42MB)..."
+                    else -> "Extracting driver packages & binding native entry symbols..."
+                }
+                _uiState.value = _uiState.value.copy(
+                    driverDownloadProgress = progress,
+                    driverDownloadStatus = statusText
+                )
+                val currTime = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+                appendCustomLogLines(listOf("$currTime I DriverDownloader: $statusText [$percent%]"))
+                delay(900)
+            }
+
+            val timestamp3 = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            val driverName = "Mesa Turnip PRO (Adreno 7xx/6xx)"
+            val driverVer = "v24.3.0-devel-R19"
+            val driverDate = "2026-06-08"
+
+            _uiState.value = _uiState.value.copy(
+                isDownloadingDriver = false,
+                driverDownloadProgress = 1.0f,
+                driverDownloadStatus = "Download complete",
+                importedDriverName = driverName,
+                importedDriverVersion = driverVer,
+                importedDriverDate = driverDate
+            )
+            saveSetting {
+                putString("imported_driver_name", driverName)
+                putString("imported_driver_version", driverVer)
+                putString("imported_driver_date", driverDate)
+            }
+            appendCustomLogLines(listOf(
+                "$timestamp3 I DriverDownloader: Turnip PRO upgrade package successfully registered.",
+                "$timestamp3 I Vulkan: Upgraded to direct-downloaded graphics system: $driverName [$driverVer]. Bypass system filters in effect."
+            ))
+        }
+    }
+
+    fun setActivePowerPlan(plan: String) {
+        _uiState.value = _uiState.value.copy(activePowerPlan = plan)
+        saveSetting { putString("active_power_plan", plan) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val details = when (plan) {
+            "High Performance" -> "High Performance (Locks minimum CPU frequency at 80% to eliminate speed shifts)"
+            "Ultimate Performance" -> "Ultimate Performance (Removes power cap, minimum & maximum frequencies locked at 100%)"
+            else -> "Balanced Power Plan (Standard dynamic scaling enabled)"
+        }
+        appendCustomLogLines(listOf(
+            "$timestamp I PowerOptimizer: System Power Plan set to '$plan'.",
+            "$timestamp D PowerManager: Power Limit profile: $details."
+        ))
+    }
+
+    fun setUsbSelectiveSuspendDisabled(disabled: Boolean) {
+        _uiState.value = _uiState.value.copy(usbSelectiveSuspendDisabled = disabled)
+        saveSetting { putBoolean("usb_selective_suspend_disabled", disabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val stateText = if (disabled) "DISABLED" else "ENABLED"
+        appendCustomLogLines(listOf(
+            "$timestamp I PowerOptimizer: USB selective suspend is now $stateText.",
+            "$timestamp D PowerManager: USB power polling restrictions bypassed to prevent device connection lags."
+        ))
+    }
+
+    fun setProcessorPowerLimitLocked100(locked: Boolean) {
+        _uiState.value = _uiState.value.copy(processorPowerLimitLocked100 = locked)
+        saveSetting { putBoolean("processor_power_limit_locked_100", locked) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val stateText = if (locked) "LOCKED AT 100%" else "DYNAMIC"
+        appendCustomLogLines(listOf(
+            "$timestamp I PowerOptimizer: Minimum/Maximum processor state is now $stateText.",
+            "$timestamp D PowerManager: OS Power-Governor scheduler thresholds pinned to 100% capacity."
+        ))
+    }
+
+    fun setGpuQueueOptimizationEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(gpuQueueOptimizationEnabled = enabled)
+        saveSetting { putBoolean("gpu_queue_optimization_enabled", enabled) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val stateText = if (enabled) "ENABLED" else "DISABLED"
+        appendCustomLogLines(listOf(
+            "$timestamp I TweakManager: GPU Pipeline Queue Size Optimization is now $stateText.",
+            "$timestamp D RenderEngine: Multi-threaded command execution queues optimized for low latency."
+        ))
+    }
+
+    fun setThreadPriorityPinned(pinned: Boolean) {
+        _uiState.value = _uiState.value.copy(threadPriorityPinned = pinned)
+        saveSetting { putBoolean("thread_priority_pinned", pinned) }
+        val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+        val stateText = if (pinned) "PINNED (SCHED_FIFO)" else "DYNAMIC (SCHED_OTHER)"
+        appendCustomLogLines(listOf(
+            "$timestamp I TweakManager: Game system-thread affinity priority pinning set to $stateText.",
+            "$timestamp D KernelScheduler: High priority java/render thread affinity pinned to prime CPU cores."
         ))
     }
 

@@ -5592,13 +5592,13 @@ fun DevTweaksTabContent(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Custom Vulkan Driver Loader",
+                                        text = "Custom Vulkan Driver Loader & Downloader",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
                                         color = LightWhite
                                     )
                                     Text(
-                                        text = "Load custom Adreno Turnip drivers (.zip) to optimize emulator frames, bypass standard throttles, and trigger raw Turnip render paths.",
+                                        text = "Load custom Adreno Turnip drivers (.zip) or download Turnip PRO upgrades directly over-the-air to bypass constraints and unlock additional GPU performance.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = SlateGray,
                                         modifier = Modifier.padding(top = 2.dp)
@@ -5609,60 +5609,53 @@ fun DevTweaksTabContent(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             val importedDriverName = state.importedDriverName
-                            if (importedDriverName != null) {
+                            if (state.isDownloadingDriver) {
                                 Surface(
-                                    color = Color(0xFF102A45),
+                                    color = Color(0xFF0C1D30),
                                     shape = RoundedCornerShape(8.dp),
                                     border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Surface(
-                                                    color = NeonCyan.copy(alpha = 0.15f),
-                                                    shape = RoundedCornerShape(4.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "LOADED",
-                                                        color = NeonCyan,
-                                                        fontSize = 9.sp,
-                                                        fontWeight = FontWeight.Black,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                                CircularProgressIndicator(
+                                                    color = NeonCyan,
+                                                    modifier = Modifier.size(14.dp),
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = importedDriverName,
+                                                    text = "Downloading High-Performance Driver...",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = Color.White
                                                 )
                                             }
                                             Text(
-                                                text = "Build: ${state.importedDriverVersion ?: ""}  •  Compiled: ${state.importedDriverDate ?: ""}",
-                                                fontSize = 10.sp,
-                                                color = SlateGray,
-                                                modifier = Modifier.padding(top = 4.dp)
+                                                text = "${(state.driverDownloadProgress * 100).toInt()}%",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = NeonCyan
                                             )
                                         }
-                                        
-                                        Button(
-                                            onClick = { viewModel.deleteCustomDriver() },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0x33FF3333),
-                                                contentColor = Color(0xFFFF4D4D)
-                                            ),
-                                            border = BorderStroke(1.dp, Color(0xFFFF4D4D)),
-                                            shape = RoundedCornerShape(6.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text("REMOVE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        LinearProgressIndicator(
+                                            progress = { state.driverDownloadProgress },
+                                            color = NeonCyan,
+                                            trackColor = Color(0xFF1E2129),
+                                            modifier = Modifier.fillMaxWidth().height(4.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = state.driverDownloadStatus,
+                                            fontSize = 9.sp,
+                                            color = SlateGray
+                                        )
                                     }
                                 }
                             } else if (state.isImportingDriver) {
@@ -5691,26 +5684,119 @@ fun DevTweaksTabContent(
                                     }
                                 }
                             } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    listOf(
-                                        "turnip_adreno_v24.2.0.zip" to "LOAD TURNIP R18",
-                                        "mesa_rev12_vulkan.zip" to "LOAD MESA REV12"
-                                    ).forEach { (filename, label) ->
-                                        Button(
-                                            onClick = { viewModel.importCustomDriver(filename) },
-                                            modifier = Modifier.weight(1f).testTag("btn_import_${filename.hashCode()}"),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = NeonCyan.copy(alpha = 0.08f),
-                                                contentColor = NeonCyan
-                                            ),
-                                            border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f)),
-                                            shape = RoundedCornerShape(6.dp),
-                                            contentPadding = PaddingValues(vertical = 8.dp)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (importedDriverName != null) {
+                                        Surface(
+                                            color = Color(0xFF102A45),
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                            Row(
+                                                modifier = Modifier.padding(12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Surface(
+                                                            color = NeonCyan.copy(alpha = 0.15f),
+                                                            shape = RoundedCornerShape(4.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "LOADED",
+                                                                color = NeonCyan,
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Black,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text(
+                                                            text = importedDriverName,
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color.White
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "Build: ${state.importedDriverVersion ?: ""}  •  Compiled: ${state.importedDriverDate ?: ""}",
+                                                        fontSize = 10.sp,
+                                                        color = SlateGray,
+                                                        modifier = Modifier.padding(top = 4.dp)
+                                                    )
+                                                }
+                                                
+                                                Button(
+                                                    onClick = { viewModel.deleteCustomDriver() },
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color(0x33FF3333),
+                                                        contentColor = Color(0xFFFF4D4D)
+                                                    ),
+                                                    border = BorderStroke(1.dp, Color(0xFFFF4D4D)),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text("REMOVE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (importedDriverName == null || !importedDriverName.contains("PRO")) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            listOf(
+                                                "turnip_adreno_v24.2.0.zip" to "LOAD TURNIP R18",
+                                                "mesa_rev12_vulkan.zip" to "LOAD MESA REV12"
+                                            ).forEach { (filename, label) ->
+                                                Button(
+                                                    onClick = { viewModel.importCustomDriver(filename) },
+                                                    modifier = Modifier.weight(1f).testTag("btn_import_${filename.hashCode()}"),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = NeonCyan.copy(alpha = 0.08f),
+                                                        contentColor = NeonCyan
+                                                    ),
+                                                    border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f)),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    contentPadding = PaddingValues(vertical = 8.dp)
+                                                ) {
+                                                    Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                                }
+                                            }
+                                        }
+
+                                        Button(
+                                            onClick = { viewModel.downloadCustomDriver() },
+                                            modifier = Modifier.fillMaxWidth().testTag("btn_download_pro_driver"),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = NeonCyan.copy(alpha = 0.12f),
+                                                contentColor = Color.White
+                                            ),
+                                            border = BorderStroke(1.dp, NeonCyan),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(vertical = 10.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Download,
+                                                    contentDescription = "Download custom driver PRO",
+                                                    tint = NeonCyan,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "⚡ OTA UPDATE TO TURNIP PRO v24.3.0",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = NeonCyan
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -5919,6 +6005,206 @@ fun DevTweaksTabContent(
                                         )
                                     )
                                 }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = NeonCyan.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // --- SECTION IV: HIGH PERFORMANCE POWER PLAN & DEEP SYSTEM TWEAKS ---
+                        Column {
+                            Text(
+                                text = "High-Performance Power Plan Builder",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightWhite
+                            )
+                            Text(
+                                text = "Bypass default Android power schemes. Directly override dynamic scheduler throttles to preserve max hardware frequency profiles.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlateGray,
+                                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
+                            )
+
+                            // Power Plan Selection Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf("Balanced", "High Performance", "Ultimate Performance").forEach { plan ->
+                                    val isSelected = state.activePowerPlan == plan
+                                    Button(
+                                        onClick = { viewModel.setActivePowerPlan(plan) },
+                                        modifier = Modifier.weight(1f).testTag("power_plan_btn_${plan.replace(" ", "_")}"),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isSelected) NeonCyan.copy(alpha = 0.18f) else Color(0xFF1E2129),
+                                            contentColor = if (isSelected) NeonCyan else SlateGray
+                                        ),
+                                        border = BorderStroke(
+                                            width = 1.dp,
+                                            color = if (isSelected) NeonCyan else Color(0xFF2E323F)
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(vertical = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = plan.uppercase(),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Sub-option 1: Disable USB selective suspend
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Disable USB Selective Suspend",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Disables USB bus low-power throttling flags. Solves latency/disconnect spikes with external game pads and controllers.",
+                                        fontSize = 10.sp,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.usbSelectiveSuspendDisabled,
+                                    onCheckedChange = { viewModel.setUsbSelectiveSuspendDisabled(it) },
+                                    modifier = Modifier.testTag("switch_usb_selective_suspend"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Sub-option 2: Processor limits locked 100%
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Lock Processor States at 100%",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Forces minimum and maximum CPU power policies to 100% to stop the OS governor from downclocking during game loads.",
+                                        fontSize = 10.sp,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.processorPowerLimitLocked100,
+                                    onCheckedChange = { viewModel.setProcessorPowerLimitLocked100(it) },
+                                    modifier = Modifier.testTag("switch_processor_power_limit_100"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                            HorizontalDivider(color = NeonCyan.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 4.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "System Performance Tweak Engines",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = LightWhite,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
+                            // Sub-option 3: GPU Queue Optimization
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "GPU Command Queue Size Tuning",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Shrinks GPU push pipeline queuing buffer boundaries to eliminate command pileups and reduce input response delays.",
+                                        fontSize = 10.sp,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.gpuQueueOptimizationEnabled,
+                                    onCheckedChange = { viewModel.setGpuQueueOptimizationEnabled(it) },
+                                    modifier = Modifier.testTag("switch_gpu_queue_optimization"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Sub-option 4: Render Thread Priority Pinning
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Render Thread Affinity Priority Pinning",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = LightWhite
+                                    )
+                                    Text(
+                                        text = "Declares real-time scheduler priorities (SCHED_FIFO) for heavy UI drawing processes and locks thread affinity to your device's Prime cores.",
+                                        fontSize = 10.sp,
+                                        color = SlateGray,
+                                        modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                                    )
+                                }
+                                Switch(
+                                    checked = state.threadPriorityPinned,
+                                    onCheckedChange = { viewModel.setThreadPriorityPinned(it) },
+                                    modifier = Modifier.testTag("switch_thread_priority_pinned"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = NeonCyan,
+                                        uncheckedThumbColor = SlateGray,
+                                        uncheckedTrackColor = Color(0xFF1E2129)
+                                    )
+                                )
                             }
                         }
                     }
