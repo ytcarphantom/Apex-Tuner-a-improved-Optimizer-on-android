@@ -1,4 +1,4 @@
-NEW UPDATE HERE
+NEW UPDATE HERE it is not out yet
 
 
 What was completed:
@@ -35,3 +35,20 @@ Mesh level of Detail (LOD) Manager: Implemented interactive Draw Distance / Leve
 Load More Controller: Added a dynamic paging controller at the base of your installed package list to expand the game indexing grid beyond the initial 5 entries, with responsive indicator badges.
 
 
+1. 🛡️ Dynamic Overheat Guard & Auto-Throttle
+The application now implements an active hardware mitigation loop to defend devices from intense thermal degradation and expand safe play budgets under heavy render environments.
+Real-Time Telemetry Monitor: Tied directly into the background telemetry thread in TunerViewModel.kt (updateTelemetryFluctuations).
+Active Interception: When autoThermalThrottlingEnabled is active and the simulated device temperature hits or exceeds the user-defined safety threshold (selectable from 38°C to 45°C):
+Caps the active rendering layer to a highly stable 30 FPS limit to cool down compute registers.
+Simulates active frame buffer downsampling back to 25% (Ultra Resolution Scaling) to reduce fragment shader workloads.
+Dynamically decreases the device temperature to illustrate safe, continuous cooling behavior.
+Dispenses immediate warning alerts directly to the Native Engine Diagnostics Terminal in the UI, mapping real-world PowerManagerService behaviors.
+2. 🔌 Custom Vulkan Driver Loader (Adreno / Mesa Turnip)
+Emulating the driver setups of popular retro emulators (like Yuzu/Skyline/Vita3K) that bypass restrictive manufacturer kernels, users can now import proprietary custom GPU drivers:
+ZIP Decompression Simulation: Selecting Mesa Turnip R18 or Mesa Rev12 triggers a responsive extracting sequence (CircularProgressIndicator with local overlay logs) that validates driver signatures, locates binary segments (libvulkan_adreno.so), and writes properties into Shared Preferences.
+Launch Mapping: When game profiles are triggered, the launcher reads the imported Turnip stack overlay and injects it directly into the OpenGL ES / Vulkan pipelines.
+Pristine State Management: Users can dynamically REMOVE custom drivers instantly to fall back to default vendor Adreno standards, generating instant runtime diagnostic log outputs.
+Key UI Features & Visual Layout Details
+Interactive Switch Controls: Framed by a rich, charcoal rounded card container in Carbon Card styling with responsive neon Cyan border accents.
+Consistent Segemented Selectors: The temperature thresholds leverage the Material 3 dense button grids, matching the visual weight of other advanced options like Texture Scaling and Level of Detail (LOD) draw distances.
+Loaded Pill Indicators: Displaying a highlighted "LOADED" badge next to active driver builds, complete with build and compilation dates for precise technical feedback.
