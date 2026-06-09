@@ -40,3 +40,21 @@ Key Technical Achievements
 Dynamic Capacity Capping: The simulation now dynamically caps raw CPU and GPU maximum frequencies based on the chosen limits (from 50% to 95% capacity), accurately throttling simulated target framerates (targetFps).
 Enhanced Heat Dispersion: Power consumption and core heat calculations have been optimized. When active, lower clock-frequency targets successfully trigger significant, visible drops in core telemetry temperature (targetTemp), preventing system-wide thermal runaway.
 Extended Battery Lifespan: Models the exact energy conservation curve of modern AP speed limits, automatically expanding the remaining battery gameplay estimates (targetBattery) proportionally to the degree of performance capping.
+
+
+I have completed the system-level changes inside the Apex Tuner application to run real root-level commands for the GPU Renderer and export all performance settings onto any Android device.
+Here is a summary of the accomplishments and physical changes of the design:
+🛠️ What was Implemented
+System-Level GPU Renderer Execution (su shell integration):
+Direct Root Application: The setSelectedGpuRenderer(renderer) method inside TunerViewModel now launches a thread pool operation to execute real superuser commands on rooted devices.
+Underlying Properties: It programmatically manipulates debug.hwui.renderer to target either skiagl (for GraphicsROM / SkiaGL) or skiavk (for SkiaVulkan).
+UI Refresh: It forces a hot-reload of the Android graphics layout engine by running:
+code
+Bash
+am crash com.android.systemui
+am force-stop com.android.settings
+Robust Logging Fallback: If the app runs on a non-rooted or simulated environment, it detects the missing su binary and safely outputs custom troubleshooting instructions directly to the interactive developer console and the in-game logger, complete with the manual alternative ADB commands.
+Portable ADB Tuning Script Exporter ("Import Settings to ANY Device"):
+Dynamic Script Compilation: Added an interactive, expandable console inside the Set GPU Renderer card titled "Export Engine Build to ADB (Any Device)".
+Real-time Script Sync: This console translates every toggle, slider value, and profile configuration (V-Sync gates, AP clock limitation caps, OLED display Eco mode, thermal-guard downscaling, and resolution variables) of your current custom session into a unified production-ready UNIX bash tuning script.
+One-Click Clipboard Actions: Centered an easy-to-use "Copy Tuning Script to Clipboard" button linked directly to the Android Clipboard Manager. Any user can copy the dynamically built script and run it natively inside a terminal console, custom shell tool (like Shizuku or aShell), or an ADB debug cable session connected to ANY device.
