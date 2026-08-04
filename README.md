@@ -1,4 +1,4 @@
-# Release v1.9 — The ULTIMATE PERFORMANCE VERSION
+# Release v1.9 — ULTIMATE PERFORMANCE VERSION
 
 ### Core Settings Module
 
