@@ -1,5 +1,5 @@
-NEW VERSION 1.8 Fixing [set GPU render] 
-# Release v1.8.0 — The Gemini Intelligence & Pipeline Update 🚀
+NEW VERSION 1.8
+# Release v1.8 — The Gemini Intelligence & Pipeline Update 🚀
 
 ## 🎮 Core Graphics & Rendering Engine
 * **Interactive GPU Renderer Selector**: Added a tab-segmented component under the **Dev Tweaks** tab.
@@ -19,26 +19,10 @@ NEW VERSION 1.8 Fixing [set GPU render]
 * **Gemini UI Optimizer Card**: Positioned a control hub in the **Tune-Up** tab equipped with real-time stat pills and a one-click auto-apply utility.
 
 
+### 🔧 Graphics Engine & Stability Fixes
+* **Correct Property Mapping**: Mapped `Default` to `setprop debug.hwui.renderer default` to prevent syntax errors caused by empty value strings. Added comprehensive pipeline support for `Default`, `GraphicsROM / SkiaGL (skiagl)`, `SkiaVulkan (skiavk)`, and `Vulkan Direct (vulkan)`.
+* **Unified Settings Persistence**: Consolidated the SharedPreferences key under `KEY_SELECTED_GPU_RENDERER` to ensure user configuration choice persists reliably across application restarts.
+* **Eliminated SystemUI Crashes**: Removed disruptive background `am crash com.android.systemui` system calls that were previously triggering OS-level crashes when toggling rendering options.
+* **UI State Synchronization**: Streamlined option selection state logic within `MainActivity.kt` to ensure the active hardware renderer remains accurately selected and highlighted in the user interface.
 
 
-🎮 What was implemented:
-Interactive GPU Renderer Selector:
-Designed an elegant, tab-segmented selection component under the new Set GPU Renderer card in the Dev Tweaks tab.
-Allows switching dynamically between Default system settings, GraphicsROM / SkiaGL, and SkiaVulkan hardware acceleration pipelines.
-Set selections are persisted across application launches via secure client-side storage boundaries.
-Parallel Processing Definition & Education Panel:
-Built a highlighted, high-contrast information box inside the card detailing how modern GPUs differ from traditional processing nodes.
-Included the precise educational copy requested, outlining the parallel processing capabilities of thousands of smaller, simpler cores optimized to compute pixel math and shader parameters simultaneously for gaming loads.
-Advanced Console Logging:
-Linked the selected GPU Renderer directly to the app loader; launching games through the resource optimizer now automatically injects a pipeline override command under the active daemon logs (e.g., [GPU-RENDERER] Forced active rendering pipeline framework: SkiaVulkan).
-
-I have set up the Retrofit client to integrate the Gemini 3.5 Flash API and configured Android performance APIs for gaming:
-1. Retrofit Client for Gemini API (GeminiApiClient.kt)
-Retrofit Service (GeminiApiService): Configured to query the gemini-3.5-flash:generateContent endpoint using standard REST API patterns.
-Resilient Network Client (RetrofitClient): Configured OkHttpClient with 60-second timeouts to handle AI response generation smoothly, paired with MoshiConverterFactory.
-Serializable Models: Defined GeminiRequest, GeminiContent, GeminiPart, GeminiCandidate, and GeminiResponse data classes.
-2. Intelligent System Telemetry Analyzer (TunerViewModel.kt)
-Live Telemetry Collection (fetchGeminiOptimizationSuggestions): Gathers live system metrics—including real-time FPS, packet ping, thermal temperatures, RAM/Storage usage, active GPU renderer, Low Latency mode, ADPF governor status, and hardware chip properties—and sends them to Gemini AI.
-Auto-Apply Performance Tweaks (applyAiSuggestions): Automatically applies Gemini recommendations directly to device hardware configurations (enforcing the ULTIMATE_PERFORMANCE game profile, SkiaVulkan graphics pipeline, ON_BOOST network mode, ADPF performance hints, thread priority pinning, and peak refresh rate).
-3. Interactive UI Card (MainActivity.kt)
-Gemini AI Gaming Optimizer Card: Added a dedicated card in the Tune-Up tab featuring real-time stat pills, a dynamic analysis button, progress indicator, structured diagnostic outputs, and a one-click auto-apply button.
