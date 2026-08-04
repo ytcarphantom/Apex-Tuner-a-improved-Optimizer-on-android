@@ -1,31 +1,39 @@
-# Release v1.8 — The Gemini Intelligence & Pipeline Update & RAM Optimizer and Thermal Framerate stabilizer 🚀
+# Release v1.9 — The ULTIMATE PERFORMANCE VERSION
 
-## 🎮 Core Graphics & Rendering Engine
-* **Interactive GPU Renderer Selector**: Added a tab-segmented component under the **Dev Tweaks** tab.
-* **Pipeline Toggling**: Dynamically switch between Default, GraphicsROM / SkiaGL, and SkiaVulkan hardware acceleration.
-* **State Persistence**: Component selections securely persist across app launches via local client storage boundaries.
-* **Educational Panel**: Integrated a high-contrast Material 3 card explaining modern GPU microcode, parallel processing, and shader math.
+### Core Settings Module
 
-## 🤖 Gemini 3.5 Flash AI Integration
-* **Retrofit Client Configuration**: Deployed a resilient architecture to interface with the `gemini-3.5-flash:generateContent` REST endpoint.
-* **Network Reliability**: Built via `OkHttpClient` with 60-second timeouts and full `MoshiConverterFactory` serialization.
-* **Intelligent Telemetry Analyzer**: Automatically aggregates live metrics (FPS, ping, thermals, RAM, ADPF governor status) for AI analysis.
+The Core Settings Module provides system-wide performance tuning through an interactive Material 3 (M3) interface. Users can toggle individual parameters or utilize the master activation control. All configurations persist across system reboots.
 
-## 🔧 Graphics Engine & Stability Fixes
-* **Correct Property Mapping**: Mapped `Default` to `setprop debug.hwui.renderer default` to prevent syntax errors caused by empty strings. Added pipeline support for `Default`, `GraphicsROM / SkiaGL (skiagl)`, `SkiaVulkan (skiavk)`, and `Vulkan Direct (vulkan)`.
-* **Unified Settings Persistence**: Consolidated the SharedPreferences key under `KEY_SELECTED_GPU_RENDERER` to ensure user configurations persist reliably across application restarts.
-* **Eliminated SystemUI Crashes**: Removed disruptive background `am crash com.android.systemui` system calls that were previously triggering OS-level crashes when toggling rendering options.
-* **UI State Synchronization**: Streamlined option selection state logic within `MainActivity.kt` to ensure the active hardware renderer remains accurately highlighted.
+#### Key Features
 
-## 🧠 Memory Management & RAM Optimizer
-* **Permission Declaration**: Verified and declared the `KILL_BACKGROUND_PROCESSES` permission in the `AndroidManifest.xml` layer.
-* **RAM Logic Engine**: Implemented precise system memory utilization metrics via `ActivityManager.MemoryInfo()` inside `RamOptimizer.kt`. Added active background task memory cleanup across non-system application packages combined with targeted runtime Garbage Collection (`System.gc()`) triggers.
-* **Compose UI Layer**: Engineered `RamOptimizerScreen.kt` using Material 3 components, featuring live real-time memory statistics, an animated storage utilization/progress bar, status feedback strings, and a dedicated **BOOST RAM NOW** interaction trigger.
-* **App Layout Integration**: Successfully embedded the `RamOptimizerScreen()` composable into the main interface scroll container within `MainActivity.kt`.
+*   **Maximize FPS**
+    *   Unlocks system-wide higher frame rate caps aiming for a 120 FPS target.
+    *   Forces the display panel to maintain its peak refresh rate dynamically.
+    *   Engages Android Swappy frame pacing to eliminate micro-stutters and frame drops.
+*   **Minimize Input Lag**
+    *   Activates zero-delay input handling using `ON_BOOST` low-latency responses.
+    *   Enhances touch responsiveness via Ultra-Gaming touch sensitivity profiles.
+    *   Pins critical gaming thread priorities and opens low-latency audio pipelines.
+*   **Optimize Game Configs**
+    *   Applies pro-tested visual clarity presets optimized for competitive speed.
+    *   Enables Vulkan pre-transform scaling to reduce hardware rendering overhead.
+    *   Optimizes GPU hardware queue scheduling for faster frame dispatching.
+*   **Strip System Bloat**
+    *   Terminates hidden background process trees during active gaming sessions.
+    *   Suppresses background telemetry data tracking to reclaim network bandwidth.
+    *   Triggers automatic memory sweeps to free up idle RAM blocks.
+*   **Prioritize Your Game**
+    *   Pauses non-essential background tasks temporarily to maximize resource allocation.
+    *   Locks CPU and GPU governors into explicit high-performance modes.
+    *   Suppresses incoming notifications to prevent overlay lag and distractions.
+*   **Monitor System Health**
+    *   Displays a real-time hardware telemetry overlay during gameplay.
+    *   Tracks live metrics: FPS, CPU temperature, battery temperature, ping, and RAM.
+    *   Identifies immediate hardware bottlenecks before they impact performance.
 
-## 🌡️ Dynamic Thermal Frame Rate Stabilizer
-* **Automatic Thermal Guard & FPS Stabilization**: Monitors core temperatures to automatically lock frame rate pacing at a stable target (e.g., 60 FPS) when thermal thresholds are breached, successfully eliminating severe lag stutters and destructive frame spikes.
-* **Integrated Mitigation Stack**: Automatically engages Swappy Frame Pacing, the ADPF Thermal Headroom Governor, 0.85x Dynamic Resolution Downscaling, and Panel Eco-Thermal Controls under heavy thermal loads to quickly lower device temperatures.
-* **Live Temperature Badges**: Engineered color-coded core temperature monitoring states (`NORMAL`, `THROTTLED`, `CRITICAL`) inside the `ThermalFpsStabilizerCard` UI to give immediate visual telemetry feedback.
-* **Heat Protection Status Box**: Added a real-time status UI block showcasing active hardware mitigation parameters and running background cooling algorithms.
-* **Manual Protection Trigger**: Placed a one-tap interaction button (`btn_engage_thermal_stabilizer`) to let users manually initialize thermal cooling routines and lock down the frame pacing engine on demand.
+#### User Interface
+
+The module utilizes an intuitive layout built on modern design principles:
+*   **Individual Interactive Switches**: Six independent Material 3 switches for granular preference control.
+*   **Master Control Button**: A prominent "APPLY ALL 6 CORE SETTINGS NOW" button for instant, single-tap optimization.
+*   **Persistent Storage**: All user selections are saved locally and re-applied automatically.
