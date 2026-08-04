@@ -1,4 +1,4 @@
-NEW VERSION 1.8
+NEW VERSION 1.8 Fixing [set GPU render] 
 # Release v1.8.0 — The Gemini Intelligence & Pipeline Update 🚀
 
 ## 🎮 Core Graphics & Rendering Engine
