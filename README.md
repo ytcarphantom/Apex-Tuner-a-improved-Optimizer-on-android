@@ -1,4 +1,4 @@
-# Release v1.8.0 — The Gemini Intelligence & Pipeline Update & RAM optimizatizier 🚀
+# Release v1.8.0 — The Gemini Intelligence & Pipeline Update & RAM Optimizer and Thermal Framerate stabilizer 🚀
 
 ## 🎮 Core Graphics & Rendering Engine
 * **Interactive GPU Renderer Selector**: Added a tab-segmented component under the **Dev Tweaks** tab.
