@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -263,6 +264,7 @@ fun TunerDashboardScreen(
         state.activeFloatingApp?.let { appName ->
             FloatingAppSimulator(
                 appName = appName,
+                state = state,
                 onDismiss = { viewModel.toggleFloatingApp(appName) }
             )
         }
@@ -642,6 +644,11 @@ fun TuneUpTabContent(
                     }
                 }
             }
+        }
+
+        // --- GEMINI AI GAMING PERFORMANCE OPTIMIZER ---
+        item {
+            GeminiAiOptimizationCard(state = state, viewModel = viewModel)
         }
 
         // --- GENERAL OPTIMIZER MASTER BAR ---
@@ -4072,7 +4079,7 @@ fun GameEngineTabContent(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         FloatingLauncherPill(
@@ -4085,6 +4092,12 @@ fun GameEngineTabContent(
                             label = "Apex Chat Overlay",
                             isActive = state.activeFloatingApp == "Apex Chat Overlay",
                             onClick = { viewModel.toggleFloatingApp("Apex Chat Overlay") }
+                        )
+
+                        FloatingLauncherPill(
+                            label = "Apex Game HUD",
+                            isActive = state.activeFloatingApp == "Apex Game HUD",
+                            onClick = { viewModel.toggleFloatingApp("Apex Game HUD") }
                         )
                     }
                 }
@@ -7269,6 +7282,7 @@ fun TelemetryItemCard(
 @Composable
 fun FloatingAppSimulator(
     appName: String,
+    state: TunerUiState,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -7347,6 +7361,230 @@ fun FloatingAppSimulator(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             ChatMessageRow(sender = "ApexBoss", msg = "Let's capture target sector A4!", stamp = "Just now")
                             ChatMessageRow(sender = "SpeedRunner", msg = "Graphics driver system is running insanely fast on 120Hz", stamp = "2m ago")
+                        }
+                    }
+                    "Apex Game HUD" -> {
+                        var pingOptimized by remember { mutableStateOf(false) }
+                        var fpsBoosted by remember { mutableStateOf(false) }
+                        var microLogs by remember {
+                            mutableStateOf(
+                                listOf(
+                                    "[DAEMON] Active Game Overlay Service mapping successfully.",
+                                    "[MONITOR] CPU thread pinning state confirmed: Prime Cores Active.",
+                                    "[TELEMETRY] Listening to hardware rendering pipelines..."
+                                )
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                text = "IN-GAME PERFORMANCE HUD OVERLAY",
+                                fontWeight = FontWeight.Bold,
+                                color = NeonGreen,
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp
+                            )
+
+                            // FPS and Ping HUD Indicators Side-By-Side
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Frame Rate (FPS) Monitor Card
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.4f)),
+                                    border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "FRAME RATE (FPS)",
+                                            fontSize = 9.sp,
+                                            color = SlateGray,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        val currentFps = if (fpsBoosted) (state.gameFps + 24).coerceAtMost(120) else state.gameFps
+                                        Text(
+                                            text = "$currentFps",
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = NeonCyan
+                                        )
+                                        Text(
+                                            text = if (fpsBoosted) "Boost Locked (99.8%)" else "Adaptive Standard",
+                                            fontSize = 8.sp,
+                                            color = if (fpsBoosted) NeonGreen else SlateGray
+                                        )
+                                    }
+                                }
+
+                                // Ping (Packet Latency) Latency Monitor Card
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.4f)),
+                                    border = BorderStroke(1.dp, if (pingOptimized) NeonGreen.copy(alpha = 0.4f) else AlertOrange.copy(alpha = 0.4f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "PING LATENCY",
+                                            fontSize = 9.sp,
+                                            color = SlateGray,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        val currentPing = if (pingOptimized) (state.latencyPingMs / 2).coerceAtLeast(18) else state.latencyPingMs
+                                        Text(
+                                            text = "${currentPing}ms",
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (currentPing < 30) NeonGreen else AlertOrange
+                                        )
+                                        Text(
+                                            text = if (currentPing < 30) "Stable Optimal Routing" else "Subject to Jitter",
+                                            fontSize = 8.sp,
+                                            color = if (currentPing < 30) NeonGreen else AlertOrange
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Dynamic Hardware Priority
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Filled.FlashOn,
+                                        contentDescription = "Core optimization",
+                                        tint = NeonGreen,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Core Performance Mode:",
+                                        fontSize = 10.sp,
+                                        color = LightWhite
+                                    )
+                                }
+                                Text(
+                                    text = state.selectedProfile.name,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen
+                                )
+                            }
+
+                            // Active optimize quick buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        pingOptimized = !pingOptimized
+                                        val now = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+                                        microLogs = microLogs + if (pingOptimized) {
+                                            listOf(
+                                                "[$now] [NETWORK] Flush DNS server buffers & route optimization active.",
+                                                "[$now] [NETWORK] Switched to secure ultra-fast gaming gateway."
+                                            )
+                                        } else {
+                                            listOf("[$now] [NETWORK] Returned query gateway to default.")
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (pingOptimized) NeonGreen.copy(alpha = 0.2f) else CarbonCard
+                                    ),
+                                    border = BorderStroke(1.dp, if (pingOptimized) NeonGreen else SlateGray.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(vertical = 4.dp, horizontal = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.NetworkCheck,
+                                        contentDescription = "Reduce Ping",
+                                        tint = if (pingOptimized) NeonGreen else SlateGray,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (pingOptimized) "Gate Bypassed" else "Optimize Ping",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (pingOptimized) NeonGreen else LightWhite
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        fpsBoosted = !fpsBoosted
+                                        val now = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+                                        microLogs = microLogs + if (fpsBoosted) {
+                                            listOf(
+                                                "[$now] [GPU] Queue threshold minimized to fast-pacing frames.",
+                                                "[$now] [GPU] Lock triple-buffering clocks to CPU Prime core."
+                                            )
+                                        } else {
+                                            listOf("[$now] [GPU] Released triple-buffering core-lock constraints.")
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (fpsBoosted) NeonCyan.copy(alpha = 0.2f) else CarbonCard
+                                    ),
+                                    border = BorderStroke(1.dp, if (fpsBoosted) NeonCyan else SlateGray.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(vertical = 4.dp, horizontal = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Speed,
+                                        contentDescription = "Optimize FPS",
+                                        tint = if (fpsBoosted) NeonCyan else SlateGray,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (fpsBoosted) "FPS Locked" else "Maximize FPS",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (fpsBoosted) NeonCyan else LightWhite
+                                    )
+                                }
+                            }
+
+                            // Dynamic Console Logs Inside Overlay
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(80.dp)
+                                    .background(Color.Black, RoundedCornerShape(6.dp))
+                                    .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                    .padding(8.dp)
+                            ) {
+                                LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    items(microLogs.reversed()) { log ->
+                                        Text(
+                                            text = log,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 8.sp,
+                                            color = if (log.contains("[SUCCESS]") || (log.contains("NETWORK") && pingOptimized) || (log.contains("GPU") && fpsBoosted)) NeonGreen else NeonCyan,
+                                            lineHeight = 11.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -8019,6 +8257,238 @@ fun BulletPoint(
             lineHeight = 17.2.sp,
             modifier = Modifier.weight(1f)
         )
+    }
+}
+
+@Composable
+fun GeminiAiOptimizationCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_gemini_ai_optimizer"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(NeonCyan.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.AutoAwesome,
+                            contentDescription = "Gemini AI",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "GEMINI AI GAMING OPTIMIZER",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = NeonCyan,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Retrofit REST • Intelligent Telemetry Tuner",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                if (state.aiAutoApplied) {
+                    Box(
+                        modifier = Modifier
+                            .background(NeonGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                            .border(1.dp, NeonGreen, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "Applied",
+                                tint = NeonGreen,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "OPTIMIZED",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonGreen
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Current Stats Telemetry Chips
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                TelemetryStatPill(label = "FPS", value = "${state.gameFps}", color = NeonCyan)
+                TelemetryStatPill(label = "PING", value = "${state.latencyPingMs}ms", color = if (state.latencyPingMs < 40) NeonGreen else AlertOrange)
+                TelemetryStatPill(label = "TEMP", value = "${state.coolingTempCelsius}°C", color = LightWhite)
+                TelemetryStatPill(label = "RAM", value = "${state.ramUsedPercent}%", color = SlateGray)
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (state.aiSuggestionsLoading) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = NeonCyan,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Querying Gemini 3.5 Flash for Android system optimizations...",
+                        fontSize = 11.sp,
+                        color = NeonCyan,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                Button(
+                    onClick = { viewModel.fetchGeminiOptimizationSuggestions() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                        .testTag("btn_gemini_analyze"),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Psychology,
+                            contentDescription = "Analyze",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (state.aiSuggestionsText == null) "ASK GEMINI AI FOR OPTIMIZATION SUGGESTIONS" else "RE-ANALYZE WITH GEMINI AI",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            if (state.aiSuggestionsText != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                        .padding(14.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = state.aiSuggestionsText,
+                            style = TextStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                color = LightWhite,
+                                lineHeight = 16.sp
+                            )
+                        )
+
+                        Button(
+                            onClick = { viewModel.applyAiSuggestions() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                                .testTag("btn_apply_ai_suggestions"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state.aiAutoApplied) NeonGreen.copy(alpha = 0.2f) else NeonGreen
+                            ),
+                            border = if (state.aiAutoApplied) BorderStroke(1.dp, NeonGreen) else null,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.FlashOn,
+                                    contentDescription = "Apply AI Suggestions",
+                                    tint = if (state.aiAutoApplied) NeonGreen else Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = if (state.aiAutoApplied) "AI RECOMMENDATIONS APPLIED" else "AUTO-APPLY GEMINI RECOMMENDATIONS",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (state.aiAutoApplied) NeonGreen else Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TelemetryStatPill(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "$label: ",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = SlateGray
+            )
+            Text(
+                text = value,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                color = color
+            )
+        }
     }
 }
 
