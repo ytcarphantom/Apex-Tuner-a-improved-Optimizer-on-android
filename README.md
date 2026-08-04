@@ -77,3 +77,13 @@ Dynamic Device HW Tuner: Designed and added a glowing Material 3 dashboard card 
 Interactive Progress Console: Clicking the optimization button triggers a real-time kernel-like register scan, complete with interactive spinner indicators and sequential developer diagnostic log streams.
 Sustained Cache Persistence: Integrated settings natively into the existing SharedPreferences framework, ensuring the custom GPU tuning attributes persist cleanly across application reboots.
 
+I have set up the Retrofit client to integrate the Gemini 3.5 Flash API and configured Android performance APIs for gaming:
+1. Retrofit Client for Gemini API (GeminiApiClient.kt)
+Retrofit Service (GeminiApiService): Configured to query the gemini-3.5-flash:generateContent endpoint using standard REST API patterns.
+Resilient Network Client (RetrofitClient): Configured OkHttpClient with 60-second timeouts to handle AI response generation smoothly, paired with MoshiConverterFactory.
+Serializable Models: Defined GeminiRequest, GeminiContent, GeminiPart, GeminiCandidate, and GeminiResponse data classes.
+2. Intelligent System Telemetry Analyzer (TunerViewModel.kt)
+Live Telemetry Collection (fetchGeminiOptimizationSuggestions): Gathers live system metrics—including real-time FPS, packet ping, thermal temperatures, RAM/Storage usage, active GPU renderer, Low Latency mode, ADPF governor status, and hardware chip properties—and sends them to Gemini AI.
+Auto-Apply Performance Tweaks (applyAiSuggestions): Automatically applies Gemini recommendations directly to device hardware configurations (enforcing the ULTIMATE_PERFORMANCE game profile, SkiaVulkan graphics pipeline, ON_BOOST network mode, ADPF performance hints, thread priority pinning, and peak refresh rate).
+3. Interactive UI Card (MainActivity.kt)
+Gemini AI Gaming Optimizer Card: Added a dedicated card in the Tune-Up tab featuring real-time stat pills, a dynamic analysis button, progress indicator, structured diagnostic outputs, and a one-click auto-apply button.
