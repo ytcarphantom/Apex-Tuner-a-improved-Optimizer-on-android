@@ -17,3 +17,9 @@ NEW VERSION 1.8
 * **Unified Settings Persistence**: Consolidated the SharedPreferences key under `KEY_SELECTED_GPU_RENDERER` to ensure user configuration choice persists reliably across application restarts.
 * **Eliminated SystemUI Crashes**: Removed disruptive background `am crash com.android.systemui` system calls that were previously triggering OS-level crashes when toggling rendering options.
 * **UI State Synchronization**: Streamlined option selection state logic within `MainActivity.kt` to ensure the active hardware renderer remains accurately selected and highlighted in the user interface.
+
+### 🧠 Memory Management & RAM Optimizer
+* **Permission Declaration**: Verified and declared the `KILL_BACKGROUND_PROCESSES` permission in the `AndroidManifest.xml` layer.
+* **RAM Logic Engine**: Implemented precise system memory utilization metrics via `ActivityManager.MemoryInfo()` inside `RamOptimizer.kt`. Added active background task memory cleanup across non-system application packages combined with targeted runtime Garbage Collection (`System.gc()`) triggers.
+* **Compose UI Layer**: Engineered `RamOptimizerScreen.kt` using Material 3 components, featuring live real-time memory statistics, an animated storage utilization/progress bar, status feedback strings, and a dedicated **BOOST RAM NOW** interaction trigger.
+* **App Layout Integration**: Successfully embedded the `RamOptimizerScreen()` composable into the main interface scroll container within `MainActivity.kt`.
