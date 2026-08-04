@@ -4895,7 +4895,7 @@ fun DevTweaksTabContent(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // Renderer selectors (segmented / row selection)
-                    val options = listOf("Default", "GraphicsROM / SkiaGL", "SkiaVulkan")
+                    val options = listOf("Default", "GraphicsROM / SkiaGL", "SkiaVulkan", "Vulkan Direct")
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -4904,12 +4904,7 @@ fun DevTweaksTabContent(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         options.forEach { option ->
-                            val isSelected = when (option) {
-                                "Default" -> state.selectedGpuRenderer == "Default"
-                                "GraphicsROM / SkiaGL" -> state.selectedGpuRenderer == "GraphicsROM / SkiaGL"
-                                "SkiaVulkan" -> state.selectedGpuRenderer == "SkiaVulkan"
-                                else -> false
-                            }
+                            val isSelected = state.selectedGpuRenderer == option
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -4928,7 +4923,7 @@ fun DevTweaksTabContent(
                             ) {
                                 Text(
                                     text = option,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                     color = if (isSelected) NeonGreen else LightWhite,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -5041,6 +5036,7 @@ fun DevTweaksTabContent(
                                     val hwRenderer = when (state.selectedGpuRenderer) {
                                         "GraphicsROM / SkiaGL" -> "skiagl"
                                         "SkiaVulkan" -> "skiavk"
+                                        "Vulkan Direct" -> "vulkan"
                                         else -> "default"
                                     }
                                     appendLine("# 1. Configure Hardware Rendering Pipeline (GPU Renderer)")

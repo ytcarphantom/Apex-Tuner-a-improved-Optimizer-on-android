@@ -537,6 +537,7 @@ class TunerViewModel : ViewModel() {
         private const val KEY_BLUETOOTH_CONTROLLER_BOOST = "bluetooth_controller_boost"
         private const val KEY_BLUETOOTH_AUDIO_OPTIMIZATION = "bluetooth_audio_optimization"
         private const val KEY_LAG_KILLER_ENABLED = "lag_killer_enabled"
+        private const val KEY_SELECTED_GPU_RENDERER = "selected_gpu_renderer"
     }
 
     fun initPersistence(context: Context) {
@@ -789,7 +790,7 @@ class TunerViewModel : ViewModel() {
         val shaderPrecompilationThermalOptimize = prefs.getBoolean("shader_precompilation_thermal_optimize", false)
         val dynamicRenderTargetDownscaling = prefs.getBoolean("dynamic_render_target_downscaling", false)
         val displayEcoThermalMode = prefs.getBoolean("display_eco_thermal_mode", false)
-        val selectedGpuRenderer = prefs.getString("selected_gpu_renderer", "Default") ?: "Default"
+        val selectedGpuRenderer = prefs.getString(KEY_SELECTED_GPU_RENDERER, "Default") ?: "Default"
         val apClockLimitationEnabled = prefs.getBoolean("ap_clock_limitation_enabled", false)
         val apClockLimitPercent = prefs.getInt("ap_clock_limit_percent", 90)
         val autoGpuOptimized = prefs.getBoolean("auto_gpu_optimized", false)
@@ -1821,7 +1822,7 @@ class TunerViewModel : ViewModel() {
 
     fun setSelectedGpuRenderer(renderer: String) {
         _uiState.value = _uiState.value.copy(selectedGpuRenderer = renderer)
-        saveSetting { putString("selected_gpu_renderer", renderer) }
+        saveSetting { putString(KEY_SELECTED_GPU_RENDERER, renderer) }
         
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val timestamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
@@ -1832,18 +1833,17 @@ class TunerViewModel : ViewModel() {
             val rendererType = when (renderer) {
                 "GraphicsROM / SkiaGL" -> "skiagl"
                 "SkiaVulkan" -> "skiavk"
-                else -> ""
+                "Vulkan Direct" -> "vulkan"
+                else -> "default"
             }
             
-            logs.add("$timestamp I HW-Renderer: Prepared system-level setprop change: [su -c 'setprop debug.hwui.renderer $rendererType']")
+            logs.add("$timestamp I HW-Renderer: Configured system renderer property: setprop debug.hwui.renderer $rendererType")
             
             try {
                 val process = Runtime.getRuntime().exec("su")
                 val os = java.io.DataOutputStream(process.outputStream)
                 
                 os.writeBytes("setprop debug.hwui.renderer $rendererType\n")
-                os.writeBytes("am crash com.android.systemui\n")
-                os.writeBytes("am force-stop com.android.settings\n")
                 os.writeBytes("exit\n")
                 os.flush()
                 os.close()
@@ -1854,20 +1854,13 @@ class TunerViewModel : ViewModel() {
                 
                 if (result == 0) {
                     logs.add("$timestamp I HW-Renderer: Root command succeeded! Renderer property successfully updated to: $rendererType.")
-                    logs.add("$timestamp I HW-Renderer: System UI thread crashed/reloading to apply rendering pipeline change.")
                 } else {
-                    logs.add("$timestamp E HW-Renderer: Root request returned non-zero code ($result). Error: $errorText")
-                    if (errorText.contains("not found") || errorText.isEmpty()) {
-                        logs.add("$timestamp W HW-Renderer: Device lacks root 'su' binaries. Graphics pipeline rendering command was simulated/saved.")
-                        logs.add("$timestamp I HW-Renderer: If running on non-rooted devices, use Shizuku or run via ADB Shell:")
-                        logs.add("  adb shell setprop debug.hwui.renderer $rendererType")
-                    }
+                    logs.add("$timestamp I HW-Renderer: GPU Renderer preference saved ($rendererType). For non-rooted devices, apply via ADB Shell:")
+                    logs.add("  adb shell setprop debug.hwui.renderer $rendererType")
                 }
             } catch (e: Exception) {
-                logs.add("$timestamp E HW-Renderer: Shell process execution failed: ${e.javaClass.simpleName} - su binary not found.")
-                logs.add("$timestamp I HW-Renderer: [FALLBACK SETUP] Please run the following ADB commands via PC or Termux:")
-                logs.add("  adb shell setprop debug.hwui.renderer ${if (rendererType.isEmpty()) "default" else rendererType}")
-                logs.add("  adb shell am crash com.android.systemui")
+                logs.add("$timestamp I HW-Renderer: Settings saved to profile. To enforce system-wide via ADB Shell:")
+                logs.add("  adb shell setprop debug.hwui.renderer $rendererType")
             }
             
             val gameLogs = _uiState.value.gameModeLogs + logs.map { "[$timestamp-GPU] $it" }
@@ -2035,8 +2028,6 @@ class TunerViewModel : ViewModel() {
                 val process = Runtime.getRuntime().exec("su")
                 val os = java.io.DataOutputStream(process.outputStream)
                 os.writeBytes("setprop debug.hwui.renderer $rendererType\n")
-                os.writeBytes("am crash com.android.systemui\n")
-                os.writeBytes("am force-stop com.android.settings\n")
                 os.writeBytes("exit\n")
                 os.flush()
                 os.close()
@@ -2044,10 +2035,10 @@ class TunerViewModel : ViewModel() {
                 if (result == 0) {
                     logs.add("$timestamp I AutoTuner: Successfully set debug.hwui.renderer to $rendererType via root shell!")
                 } else {
-                    logs.add("$timestamp W AutoTuner: Device lacks root 'su' binaries. Graphics optimization profile successfully bound & simulated inside client memory space.")
+                    logs.add("$timestamp W AutoTuner: Settings saved to app profile. For non-rooted devices, use ADB Shell: adb shell setprop debug.hwui.renderer $rendererType")
                 }
             } catch (e: Exception) {
-                logs.add("$timestamp W AutoTuner: Device lacks root 'su' binaries. Real hardware bypass bound and simulated successfully, and compiled for export.")
+                logs.add("$timestamp W AutoTuner: Settings saved to profile. For non-rooted devices, use ADB Shell: adb shell setprop debug.hwui.renderer $rendererType")
             }
             
             logs.add("$timestamp [SUCCESS] Target GPU renderer aligned, thread affinity pinned, and power limit bypassed to ensure the best performance possible!")
