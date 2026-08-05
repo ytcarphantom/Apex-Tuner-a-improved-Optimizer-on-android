@@ -85,3 +85,4 @@ Added low-level system optimization utilities including:
 * **ResolutionScaler Engine (`SurfaceHolder.setFixedSize`)**: Integrated internal backbuffer resizing that decouples rendering backbuffer memory dimensions from physical display layout size. This reduces GPU pixel-shading and memory bandwidth costs directly inside the graphics pipeline without requiring Root access or ADB shell privileges.
 * **Vulkan / Native Viewport Calculation (`VulkanViewportConfig`)**: Added dynamic viewport mapping (`VkViewport`) and scissor rect constraint (`VkRect2D`) calculations for native rendering pipeline passes.
 * **Multi-Tier Resolution Downscaler**: Integrated `ResolutionScaler` into `OptimizationEngine.downscaleResolution()` as the primary zero-privilege method, while maintaining Root `wm size` as a secondary system-wide fallback option.
+* 
