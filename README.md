@@ -80,3 +80,8 @@ Added low-level system optimization utilities including:
 * **Large Heap Allocation (`android:largeHeap="true"`)**: Successfully integrated within the `<application>` tag inside the `AndroidManifest.xml` layout. This structurally commands the Android Runtime (ART) to maximize the Java heap ceiling for our process, elevating memory thresholds from standard caps up to 512MB+ based on physical hardware.
 * **Native OS Execution Model**: Bypasses artificial memory bottlenecks by utilizing official system configuration architectures. Unlike iOS constraints which require custom signing workflows or entitlement injections, the optimization layer directly declares its hardware capacity natively.
 
+### Implemented Dynamic Resolution Downscaling
+
+* **ResolutionScaler Engine (`SurfaceHolder.setFixedSize`)**: Integrated internal backbuffer resizing that decouples rendering backbuffer memory dimensions from physical display layout size. This reduces GPU pixel-shading and memory bandwidth costs directly inside the graphics pipeline without requiring Root access or ADB shell privileges.
+* **Vulkan / Native Viewport Calculation (`VulkanViewportConfig`)**: Added dynamic viewport mapping (`VkViewport`) and scissor rect constraint (`VkRect2D`) calculations for native rendering pipeline passes.
+* **Multi-Tier Resolution Downscaler**: Integrated `ResolutionScaler` into `OptimizationEngine.downscaleResolution()` as the primary zero-privilege method, while maintaining Root `wm size` as a secondary system-wide fallback option.
