@@ -48,3 +48,13 @@ The module utilizes an intuitive layout built on modern design principles:
 * **Dynamic CPU & GPU Limits**: Dynamically adapts GPU clock targets (up to 950MHz Peak) and CPU power capacity limits in real time to prevent frame drops before stutters occur.
 * **Per-Game Target Profiles**: Includes selectable per-game profile chips (Call of Duty Mobile, Genshin Impact, PUBG Mobile, Asphalt 9, Wild Rift, Auto-Detect Session).
 * **Real-Time Adaptive Telemetry HUD**: Displays live session stats including GPU Clock Target (MHz), CPU Power Limit (%), Frame Render Time (ms), and Live Stutter Rate (0%).
+
+### ⚙️ Core Optimization Engine (`OptimizationEngine.kt`)
+Added low-level system optimization utilities including:
+* **Display Refresh Rate Locking (`forceDisplayFreshness`)**: Forces hardware display parameters (`peak_refresh_rate` & `min_refresh_rate`) to lock at peak refresh rates (e.g. 120Hz).
+* **RAM Plus Virtual Swap Control (`toggleRamPlus`)**: Disables ZRAM virtual swapping (`ram_expand_size_list 0`) to prioritize physical high-speed DRAM.
+* **Logging Overhead Stripping (`stripLoggingOverhead`)**: Quiets background logging daemons (`logd`) and tracing loops to reduce CPU context switching.
+* **Native ADPF Performance Hints (`targetAdpfSession`)**: Binds active render and processing thread IDs to performance core clusters using Android's `PerformanceHintManager`.
+
+### 🔄 ViewModel & UI Integration
+* Connected `OptimizationEngine` directly to the Max Performance & Zero Stutter action in `TunerViewModel.kt` and `MainActivity.kt`.
