@@ -59,3 +59,18 @@ Added low-level system optimization utilities including:
 ### 🔄 ViewModel & UI Integration
 * Connected `OptimizationEngine` directly to the Max Performance & Zero Stutter action in `TunerViewModel.kt` and `MainActivity.kt`.
 
+## 📋 Summary of What Was Implemented
+
+### 🧹 `CacheCleaner.kt` (Option 1 — Storage Cache Cleaner)
+* Clears internal (`context.cacheDir`) and external (`context.externalCacheDir`) cache directories.
+* Recursively traverses sub-directories, deletes temporary files, and calculates the exact amount of storage space freed in MB.
+
+### 🧠 `MemoryWatcher.kt` (Option 2 — ComponentCallbacks2 Listener)
+* Implements `ComponentCallbacks2` to listen for system-wide memory pressure notifications.
+* Handles `TRIM_MEMORY_RUNNING_CRITICAL`, `TRIM_MEMORY_BACKGROUND`, and `onLowMemory()` events by clearing image/bitmap memory pools and calling `System.gc()`.
+* Automatically registered on the `MainActivity` lifecycle (`onCreate`/`onDestroy`).
+
+### 🔗 `openSystemStorageSettings` (Option 3 — System Storage Deep Link)
+* Deep-links directly to Android OS System Storage Settings (`Settings.ACTION_INTERNAL_STORAGE_SETTINGS`) with a fallback to general system settings.
+* Exposed via `OptimizationEngine.kt` and `TunerViewModel.kt` (`clearStorageCache` & `openStorageSettings`).
+
