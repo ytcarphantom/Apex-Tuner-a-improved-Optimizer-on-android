@@ -16,6 +16,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -272,7 +273,7 @@ fun TunerDashboardScreen(
         // --- MODIFY SYSTEM SETTINGS PERMISSION PROMPT ---
         if (!state.hasWriteSettingsPermission) {
             Dialog(
-                onDismissRequest = { /* User must enable it to proceed or exit */ }
+                onDismissRequest = { viewModel.dismissWriteSettingsDialog() }
             ) {
                 Card(
                     modifier = Modifier
@@ -285,69 +286,108 @@ fun TunerDashboardScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .padding(24.dp)
+                            .padding(20.dp)
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(AlertOrange.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Warning,
-                                contentDescription = "Alert",
-                                tint = AlertOrange,
-                                modifier = Modifier.size(28.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(AlertOrange.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Warning,
+                                        contentDescription = "Alert",
+                                        tint = AlertOrange,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Modify System Settings",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightWhite
+                                )
+                            }
+
+                            IconButton(onClick = { viewModel.dismissWriteSettingsDialog() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Close",
+                                    tint = SlateGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
                         Text(
-                            text = "Allow Modify System Settings",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = LightWhite,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Text(
-                            text = "Apex Tuner requires the 'Modify System Settings' permission to optimize device refresh rate, system screen timeout, and hardware parameters dynamically.",
+                            text = "Apex Tuner requests permission to optimize refresh rate, screen off timeout, and hardware parameters dynamically.",
                             style = MaterialTheme.typography.bodySmall,
                             color = SlateGray,
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Start,
                             lineHeight = 18.sp
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Button(
-                            onClick = {
-                                viewModel.openWriteSettingsPermissionScreen(context)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .testTag("btn_grant_settings_permission")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Button(
+                                onClick = {
+                                    viewModel.openWriteSettingsPermissionScreen(context)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("btn_grant_settings_permission")
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Launch,
-                                    contentDescription = "Open permissions",
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Launch,
+                                        contentDescription = "Open permissions",
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "ENABLE & CONTINUE",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { viewModel.dismissWriteSettingsDialog() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightWhite),
+                                border = BorderStroke(1.dp, SlateGray),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("btn_dismiss_settings_permission")
+                            ) {
                                 Text(
-                                    text = "ENABLE IN SETTINGS",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp
+                                    text = "DISMISS",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -646,9 +686,39 @@ fun TuneUpTabContent(
             }
         }
 
+        // --- MAX PERFORMANCE TURBO & ZERO STUTTER BANNER ---
+        item {
+            MaxPerformanceZeroStutterCard(state = state, viewModel = viewModel)
+        }
+
+        // --- AI GAME MODE REAL-TIME ADAPTIVE TUNING ---
+        item {
+            AiGameModeCard(state = state, viewModel = viewModel)
+        }
+
+        // --- ANDROID OFFICIAL PERFORMANCE & PROFILING TOOL SUITE ---
+        item {
+            AndroidToolsProfilingSuiteCard(state = state, viewModel = viewModel)
+        }
+
         // --- GEMINI AI GAMING PERFORMANCE OPTIMIZER ---
         item {
             GeminiAiOptimizationCard(state = state, viewModel = viewModel)
+        }
+
+        // --- RAM OPTIMIZER MODULE ---
+        item {
+            RamOptimizerScreen()
+        }
+
+        // --- DYNAMIC THERMAL FPS STABILIZER ---
+        item {
+            ThermalFpsStabilizerCard(state = state, viewModel = viewModel)
+        }
+
+        // --- CORE PERFORMANCE SETTINGS MODULE ---
+        item {
+            CoreGamingFeaturesCard(state = state, viewModel = viewModel)
         }
 
         // --- GENERAL OPTIMIZER MASTER BAR ---
@@ -5651,23 +5721,7 @@ fun DevTweaksTabContent(
                         // Display button to launch the grant intent
                         Button(
                             onClick = {
-                                try {
-                                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                        data = android.net.Uri.parse("package:${context.packageName}")
-                                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    try {
-                                        // Fallback if package Uri scheme is unsupported/fails on specific manufacturers
-                                        val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (ex: Exception) {
-                                        ex.printStackTrace()
-                                    }
-                                }
+                                viewModel.openWriteSettingsPermissionScreen(context)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -8487,4 +8541,1182 @@ fun TelemetryStatPill(
         }
     }
 }
+
+@Composable
+fun ThermalFpsStabilizerCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    val tempColor = when {
+        state.coolingTempCelsius > 42 -> Color(0xFFFF5252)
+        state.coolingTempCelsius > 38 -> AlertOrange
+        else -> NeonGreen
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_thermal_fps_stabilizer"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, if (state.thermalStabilizerActive || state.coolingTempCelsius >= 40) tempColor.copy(alpha = 0.6f) else NeonCyan.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(tempColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Thermostat,
+                            contentDescription = "Thermal Stabilizer",
+                            tint = tempColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "THERMAL FRAME RATE STABILIZER",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = LightWhite,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Heat Guard • Swappy Frame Pacing • 0.85x Resolution Downscaling",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .background(tempColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .border(1.dp, tempColor, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "${state.coolingTempCelsius}°C",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = tempColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Status message box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .border(1.dp, tempColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = if (state.thermalStabilizerActive || state.coolingTempCelsius >= 40)
+                            "🔥 HEAT PROTECTION ENGAGED"
+                        else
+                            "⚡ STABLE FRAME RATE GUARD READY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tempColor
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = state.thermalStabilizerStatus,
+                        fontSize = 11.sp,
+                        color = LightWhite,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action Button
+            Button(
+                onClick = { viewModel.engageThermalFpsStabilizer() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .testTag("btn_engage_thermal_stabilizer"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (state.thermalStabilizerActive) NeonGreen.copy(alpha = 0.25f) else tempColor
+                ),
+                border = if (state.thermalStabilizerActive) BorderStroke(1.dp, NeonGreen) else null,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AcUnit,
+                        contentDescription = "Cooling & FPS Stabilization",
+                        tint = if (state.thermalStabilizerActive) NeonGreen else Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (state.thermalStabilizerActive) "FRAME RATE STABILIZER ACTIVE (60 FPS LOCK)" else "ENGAGE THERMAL FPS STABILIZER NOW",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (state.thermalStabilizerActive) NeonGreen else Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CoreGamingFeaturesCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_core_gaming_features"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, NeonGreen.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.SportsEsports,
+                            contentDescription = "Core Gaming Features",
+                            tint = NeonGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "CORE GAMING SETTINGS",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = LightWhite,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Pro System Tweaks • Active Hardware Optimization",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                val activeCount = listOf(
+                    state.coreMaximizeFps,
+                    state.coreMinimizeInputLag,
+                    state.coreOptimizeGameConfigs,
+                    state.coreStripSystemBloat,
+                    state.corePrioritizeYourGame,
+                    state.coreMonitorSystemHealth
+                ).count { it }
+
+                Box(
+                    modifier = Modifier
+                        .background(NeonGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "$activeCount/6 ACTIVE",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeonGreen
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Master Apply All Button
+            Button(
+                onClick = { viewModel.applyAllCorePerformanceSettings() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .testTag("btn_apply_all_core_settings"),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.FlashOn,
+                        contentDescription = "Apply All Core Settings",
+                        tint = Color.Black,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "APPLY ALL 6 CORE SETTINGS NOW",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.Black
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 1. Maximize FPS
+            CoreFeatureSettingRow(
+                title = "Maximize FPS",
+                description = "Applies system-wide tweaks to unlock higher frame rates and stop stutters.",
+                statusBadge = if (state.coreMaximizeFps) "${state.targetFpsCap} FPS Cap • Stutter Free" else "Standard FPS Cap",
+                icon = Icons.Filled.Speed,
+                isEnabled = state.coreMaximizeFps,
+                testTag = "switch_maximize_fps",
+                onCheckedChange = { viewModel.setCoreMaximizeFps(it) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. Minimize Input Lag
+            CoreFeatureSettingRow(
+                title = "Minimize Input Lag",
+                description = "Shaves off delays to make touch, mouse, and keyboard feel instant.",
+                statusBadge = if (state.coreMinimizeInputLag) "Zero-Lag Mode • ${state.touchSensitivity.name}" else "Standard Input",
+                icon = Icons.Filled.TouchApp,
+                isEnabled = state.coreMinimizeInputLag,
+                testTag = "switch_minimize_input_lag",
+                onCheckedChange = { viewModel.setCoreMinimizeInputLag(it) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3. Optimize Game Configs
+            CoreFeatureSettingRow(
+                title = "Optimize Game Configs",
+                description = "Sets pro-tested game settings for better speed and visual clarity.",
+                statusBadge = if (state.coreOptimizeGameConfigs) "Pro Config Active • 100% Quality" else "Default Configs",
+                icon = Icons.Filled.Tune,
+                isEnabled = state.coreOptimizeGameConfigs,
+                testTag = "switch_optimize_game_configs",
+                onCheckedChange = { viewModel.setCoreOptimizeGameConfigs(it) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 4. Strip System Bloat
+            CoreFeatureSettingRow(
+                title = "Strip System Bloat",
+                description = "Removes hidden background apps and data tracking to speed up performance.",
+                statusBadge = if (state.coreStripSystemBloat) "Bloatware Stripped • Telemetry OFF" else "Bloat Protection Idle",
+                icon = Icons.Filled.CleaningServices,
+                isEnabled = state.coreStripSystemBloat,
+                testTag = "switch_strip_system_bloat",
+                onCheckedChange = { viewModel.setCoreStripSystemBloat(it) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 5. Prioritize Your Game
+            CoreFeatureSettingRow(
+                title = "Prioritize Your Game",
+                description = "Pauses background tasks so your hardware focuses entirely on your game.",
+                statusBadge = if (state.corePrioritizeYourGame) "Game Priority HIGH • Tasks Paused" else "Normal Priority",
+                icon = Icons.Filled.SportsEsports,
+                isEnabled = state.corePrioritizeYourGame,
+                testTag = "switch_prioritize_your_game",
+                onCheckedChange = { viewModel.setCorePrioritizeYourGame(it) }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 6. Monitor System Health
+            CoreFeatureSettingRow(
+                title = "Monitor System Health",
+                description = "Tracks your hardware in real-time to spot bottlenecks.",
+                statusBadge = if (state.coreMonitorSystemHealth) "${state.gameFps} FPS • ${state.coolingTempCelsius}°C • ${state.latencyPingMs}ms" else "Telemetry Standby",
+                icon = Icons.Filled.Analytics,
+                isEnabled = state.coreMonitorSystemHealth,
+                testTag = "switch_monitor_system_health",
+                onCheckedChange = { viewModel.setCoreMonitorSystemHealth(it) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CoreFeatureSettingRow(
+    title: String,
+    description: String,
+    statusBadge: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isEnabled: Boolean,
+    testTag: String,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .border(
+                1.dp,
+                if (isEnabled) NeonGreen.copy(alpha = 0.3f) else SlateGray.copy(alpha = 0.2f),
+                RoundedCornerShape(8.dp)
+            )
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isEnabled) NeonGreen.copy(alpha = 0.15f) else SlateGray.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = if (isEnabled) NeonGreen else SlateGray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LightWhite
+                        )
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isEnabled) NeonGreen.copy(alpha = 0.12f) else SlateGray.copy(alpha = 0.12f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = statusBadge,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isEnabled) NeonGreen else SlateGray
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = description,
+                        fontSize = 10.sp,
+                        color = SlateGray,
+                        lineHeight = 13.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Switch(
+                checked = isEnabled,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.testTag(testTag),
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    checkedTrackColor = NeonGreen,
+                    uncheckedThumbColor = SlateGray,
+                    uncheckedTrackColor = CarbonCard
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun MaxPerformanceZeroStutterCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_max_performance_zero_stutter"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, NeonGreen),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.FlashOn,
+                            contentDescription = "Max Performance Turbo",
+                            tint = NeonGreen,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "MAX PERFORMANCE & ZERO STUTTER",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp,
+                            color = LightWhite,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Hardware Unlocked • Swappy Pacing • Zero Jitter",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .background(NeonGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "100% UNLOCKED",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeonGreen
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action Button
+            Button(
+                onClick = { viewModel.boostAllToMaxPerformanceAndZeroStutter(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("btn_boost_max_performance_zero_stutter"),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.FlashOn,
+                        contentDescription = "Boost Max Performance",
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "BOOST TO MAX PERFORMANCE & DELETE STUTTERING NOW",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Status Badges Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("120 FPS Locked", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("0% Stutter Pacing", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("GPU 950MHz Peak", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AiGameModeCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    val gamesList = listOf("Call of Duty Mobile", "Genshin Impact", "PUBG Mobile", "Asphalt 9", "Wild Rift", "Auto-Detect Session")
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_ai_game_mode"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.6f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(NeonCyan.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Psychology,
+                            contentDescription = "AI Game Mode",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "AI GAME MODE",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp,
+                            color = LightWhite,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Smart Per-Game Performance Tuning (Real-Time Play Data)",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                Switch(
+                    checked = state.aiGameModeEnabled,
+                    onCheckedChange = { viewModel.setAiGameModeEnabled(it) },
+                    modifier = Modifier.testTag("switch_ai_game_mode_toggle"),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = NeonCyan,
+                        uncheckedThumbColor = SlateGray,
+                        uncheckedTrackColor = CarbonCard
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "TARGET GAME SESSION PROFILE:",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = LightWhite,
+                letterSpacing = 0.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Horizontal Game Selector Chips
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(gamesList) { game ->
+                    val isSelected = state.selectedGameForAiTuning == game
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) NeonCyan else Color.Black.copy(alpha = 0.4f))
+                            .border(1.dp, if (isSelected) NeonCyan else SlateGray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .clickable { viewModel.setSelectedGameForAiTuning(game) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .testTag("chip_game_${game.replace(" ", "_")}")
+                    ) {
+                        Text(
+                            text = game,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                            color = if (isSelected) Color.Black else LightWhite
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Real-time Adaptive Metrics Dashboard Box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                    .padding(14.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (state.aiGameModeEnabled) NeonGreen else SlateGray)
+                            )
+                            Text(
+                                text = "REAL-TIME ADAPTIVE TELEMETRY",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonCyan
+                            )
+                        }
+                        Text(
+                            text = "${state.selectedGameForAiTuning}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = LightWhite
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("GPU Clock Target", fontSize = 10.sp, color = SlateGray)
+                            Text("${state.aiAdaptiveGpuClockMHz} MHz", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = LightWhite)
+                        }
+                        Column {
+                            Text("CPU Power Limit", fontSize = 10.sp, color = SlateGray)
+                            Text("${state.aiAdaptiveCpuLimitPercent}%", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = LightWhite)
+                        }
+                        Column {
+                            Text("Frame Time", fontSize = 10.sp, color = SlateGray)
+                            Text("${state.aiSessionFrameTimeMs} ms", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = LightWhite)
+                        }
+                        Column {
+                            Text("Stutter Rate", fontSize = 10.sp, color = SlateGray)
+                            Text("${state.aiLiveStutterIndex}%", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = NeonGreen)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    HorizontalDivider(color = SlateGray.copy(alpha = 0.2f), thickness = 1.dp)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = state.aiSessionAdaptiveStatus,
+                        fontSize = 11.sp,
+                        color = LightWhite,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AndroidToolsProfilingSuiteCard(
+    state: TunerUiState,
+    viewModel: TunerViewModel
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("card_android_tools_profiling_suite"),
+        colors = CardDefaults.cardColors(containerColor = CarbonCard),
+        border = BorderStroke(1.dp, NeonGreen.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Title Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DeveloperMode,
+                            contentDescription = "Android Profiling Suite",
+                            tint = NeonGreen,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "ANDROID SYSTEM PROFILING SUITE",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp,
+                            color = LightWhite,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "AGI • APT • ADPF • Memory Advice • Perfetto • Meminfo",
+                            fontSize = 10.sp,
+                            color = SlateGray
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .background(NeonGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .border(1.dp, NeonGreen, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "10 TOOLS ACTIVE",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeonGreen
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 1 & 2. Android GPU Inspector (AGI) & Android Performance Tuner (APT)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // AGI Tool Box
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Android GPU Inspector (AGI)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeonGreen
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Advanced GPU tracing, shader & Vulkan draw call profiling.",
+                            fontSize = 9.sp,
+                            color = SlateGray,
+                            lineHeight = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${state.agiGpuDrawCalls} Calls",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = LightWhite
+                            )
+                            Button(
+                                onClick = { viewModel.toggleAgiGpuTracing() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (state.agiGpuTracingActive) NeonGreen else SlateGray
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .testTag("btn_toggle_agi")
+                            ) {
+                                Text(
+                                    text = if (state.agiGpuTracingActive) "TRACING" else "TRACE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // APT Tool Box
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Android Performance Tuner (APT)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeonCyan
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Optimizes quality settings, load times & device model bounds.",
+                            fontSize = 9.sp,
+                            color = SlateGray,
+                            lineHeight = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = state.aptQualityPreset,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                            Button(
+                                onClick = { viewModel.runAptTuningScan() },
+                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .testTag("btn_scan_apt")
+                            ) {
+                                Text(
+                                    text = "SCAN",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3 & 4. ADPF & Memory Advice API
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // ADPF
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Android Dynamic Perf (ADPF)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeonGreen
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Thermal, CPU & GPU dynamic power management hints.",
+                            fontSize = 9.sp,
+                            color = SlateGray,
+                            lineHeight = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(NeonGreen)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "APerformanceHint Active",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightWhite
+                            )
+                        }
+                    }
+                }
+
+                // Memory Advice API
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Memory Advice API",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeonCyan
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Memory use estimates & threshold alerts to avoid LMKs.",
+                            fontSize = 9.sp,
+                            color = SlateGray,
+                            lineHeight = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = state.memoryAdviceLevel,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonGreen
+                            )
+                            Button(
+                                onClick = { viewModel.triggerMemoryAdviceCheck() },
+                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .testTag("btn_check_mem_advice")
+                            ) {
+                                Text(
+                                    text = "CHECK",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 5, 6 & 7. Game Mode API, Perfetto, Systrace
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Game Mode API
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Text("Game Mode API", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("GAME_MODE_PERFORMANCE", fontSize = 8.sp, color = NeonGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Perfetto
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .clickable { viewModel.startPerfettoTrace() }
+                        .padding(10.dp)
+                        .testTag("btn_perfetto_trace")
+                ) {
+                    Column {
+                        Text("Perfetto Tracing", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (state.perfettoTracingActive) "RECORDING..." else "START TRACE",
+                            fontSize = 8.sp,
+                            color = if (state.perfettoTracingActive) NeonGreen else NeonCyan,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Systrace
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Text("Systrace Activity", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("0 Frame Drops", fontSize = 8.sp, color = NeonGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 8, 9 & 10. CPU Profiler, Meminfo class, Bug_report
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // CPU Profiler
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Text("CPU Profiler", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("${state.cpuProfilerActiveThreads} Threads Active", fontSize = 8.sp, color = NeonCyan, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Meminfo Class / dumpsys
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .clickable { viewModel.captureMeminfoSnapshot() }
+                        .padding(10.dp)
+                        .testTag("btn_meminfo_dump")
+                ) {
+                    Column {
+                        Text("Meminfo Class", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("Heap ${state.meminfoNativeHeapMB}MB • GFX ${state.meminfoGraphicsMB}MB", fontSize = 8.sp, color = NeonGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Bug report
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .border(1.dp, SlateGray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .clickable { viewModel.generateBugReportDump() }
+                        .padding(10.dp)
+                        .testTag("btn_bug_report_dump")
+                ) {
+                    Column {
+                        Text("Bug Report Logs", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LightWhite)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("DUMP DIAGNOSTICS", fontSize = 8.sp, color = NeonCyan, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
 
