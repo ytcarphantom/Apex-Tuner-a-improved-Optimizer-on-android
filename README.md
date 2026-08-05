@@ -74,3 +74,9 @@ Added low-level system optimization utilities including:
 * Deep-links directly to Android OS System Storage Settings (`Settings.ACTION_INTERNAL_STORAGE_SETTINGS`) with a fallback to general system settings.
 * Exposed via `OptimizationEngine.kt` and `TunerViewModel.kt` (`clearStorageCache` & `openStorageSettings`).
 
+
+### Summary of Architectural Configurations AND new features 
+
+* **Large Heap Allocation (`android:largeHeap="true"`)**: Successfully integrated within the `<application>` tag inside the `AndroidManifest.xml` layout. This structurally commands the Android Runtime (ART) to maximize the Java heap ceiling for our process, elevating memory thresholds from standard caps up to 512MB+ based on physical hardware.
+* **Native OS Execution Model**: Bypasses artificial memory bottlenecks by utilizing official system configuration architectures. Unlike iOS constraints which require custom signing workflows or entitlement injections, the optimization layer directly declares its hardware capacity natively.
+
