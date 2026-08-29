@@ -188,6 +188,8 @@ This update introduces the **Direct Android Linux Kernel Engine (`AndroidKernelE
     * `10%` — Gaming Lock
     * `30%` — Balanced
     * `60%` — System Default
+   
+  
 
 * **Pagecache & Dentry Memory Compaction:**
   * Single-tap utility to flush page caches, drop dentries/inodes (`drop_caches = 3`), and trigger immediate physical memory defragmentation (`compact_memory`).
