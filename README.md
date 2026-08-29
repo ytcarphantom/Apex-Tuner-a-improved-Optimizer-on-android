@@ -1,3 +1,4 @@
+### RELEASING 10 AM PST OR 5 PM
 # Release v1.9 — ULTIMATE PERFORMANCE VERSION & INTERNATIONAL TWEAKS 
 
 ### Core Settings Module
@@ -86,3 +87,65 @@ Added low-level system optimization utilities including:
 * **Vulkan / Native Viewport Calculation (`VulkanViewportConfig`)**: Added dynamic viewport mapping (`VkViewport`) and scissor rect constraint (`VkRect2D`) calculations for native rendering pipeline passes.
 * **Multi-Tier Resolution Downscaler**: Integrated `ResolutionScaler` into `OptimizationEngine.downscaleResolution()` as the primary zero-privilege method, while maintaining Root `wm size` as a secondary system-wide fallback option.
 * 
+
+# Release Notes: International Gaming Tweaks & Kernel Optimization
+
+## Overview
+This update introduces the dedicated **International Gaming & Kernel Optimization Module**, designed to stabilize cross-region routing, optimize SoC core scheduling, accelerate touch sampling, and eliminate JIT compilation micro-stutters.
+
+---
+
+## Features
+
+### Dedicated International Tweaks Dashboard
+* Added an **INTERNATIONAL** tab to both mobile and tablet navigation bars.
+* Integrated real-time diagnostic gauges for:
+  * Cross-region server ping
+  * Sustained FPS boost
+  * Frame stability percentage
+  * Touch polling rates
+
+### 1-Click Master International Optimizer
+* Single-tap action to sequentially execute:
+  1. Network congestion control
+  2. CPU scheduling
+  3. GPU composition
+  4. Touch overclocking
+  5. ART ahead-of-time (AOT) compilation
+  6. Frame pacing
+* Includes live progress feedback during optimization.
+
+### International Gaming Presets
+* **eSports Global Tournament:** Locks target frame rate at 120/144 FPS.
+* **Low-Ping Multiplayer:** Uses Anycast routing and TCP FastOpen for reduced latency.
+* **Sustained High-FPS:** Utilizes Energy-Aware Scheduling (EAS) core pinning and the Vulkan pipeline.
+* **Low-End Overhaul:** Enables RAM compression swap (zRAM) and forces GPU hardware overlays.
+
+### Cross-Region Low-Ping Routing & DNS
+* Integrated regional routing nodes:
+  * Tokyo
+  * Singapore
+  * Frankfurt
+  * Virginia
+  * São Paulo
+* Integrated gaming Anycast DNS stacks:
+  * Cloudflare 1.1.1.1 WARP Gaming
+  * Google Public DNS (8.8.8.8)
+  * Quad9 (9.9.9.9)
+  * OpenDNS
+
+---
+
+## Kernel & Hardware Tweak Controls
+
+* **TCP BBR & FastOpen Protocol:** Minimizes bufferbloat and packet loss across high-latency cross-region multiplayer routes.
+* **Universal EAS SoC CPU Scheduler:** Pins primary game render threads to Prime/Cortex-X cores with elevated `top-app` `schedtune` boost.
+* **Vulkan & SkiaVK Hardware Composition:** Enables zero-copy Vulkan composition and unsignaled buffer latching to minimize GPU pipeline overhead.
+* **Touch Digitizer 480Hz Overclock:** Upscales touch polling sampling rates and assigns real-time `InputFlinger` thread scheduling priority.
+* **ART Speed-Profile AOT Dexopt:** Pre-compiles application bytecode into native machine instructions to eliminate runtime JIT micro-stuttering.
+* **Frame Pacing & Dynamic Jitter Lock:** Synchronizes engine frame delivery to display refresh rates using Android Swappy frame pacing.
+
+---
+
+## Live Kernel & Routing Console
+* Added an interactive, real-time monospace console displaying executed `sysctl` properties, active network routes, and live hardware power states.
