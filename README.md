@@ -149,3 +149,45 @@ This update introduces the dedicated **International Gaming & Kernel Optimizatio
 
 ## Live Kernel & Routing Console
 * Added an interactive, real-time monospace console displaying executed `sysctl` properties, active network routes, and live hardware power states.
+
+
+# Release Notes: Android Kernel Engine & Hardware Telemetry Inspector
+
+## Overview
+This update introduces the **Direct Android Linux Kernel Engine (`AndroidKernelEngine`)** alongside a real-time **Kernel Telemetry & Hardware Node Inspector**. Designed for high-performance low-level system tuning, this release enables direct POSIX syscall execution, sysfs/procfs node manipulation, dynamic governor swapping, and live system telemetry.
+
+---
+
+## Features
+
+### Direct Android Linux Kernel Engine (`AndroidKernelEngine`)
+
+* **Direct POSIX Syscalls:**
+  * Elevates render and game thread priorities directly at the kernel level via the `setpriority` syscall using `Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY)`.
+
+* **Virtual Filesystem (Sysfs & Procfs) Node Injector:**
+  * **CPU & EAS Scheduler:** Writes performance flags directly to `/dev/stune/top-app/schedtune.boost`, `/dev/stune/top-app/schedtune.prefer_idle`, and `/proc/sys/kernel/sched_energy_aware`.
+  * **CPU Frequency Scaling:** Applies policy updates across all CPU policy nodes via `/sys/devices/system/cpu/cpufreq/policy*/scaling_governor` and `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`.
+  * **GPU KGSL & Devfreq:** Enforces performance governor locks and bus clock locks on `/sys/class/kgsl/kgsl-3d0/devfreq/governor`.
+  * **Linux TCP/IP Stack:** Injects network performance tuning via `/proc/sys/net/ipv4/tcp_congestion_control` (BBR), `/proc/sys/net/ipv4/tcp_fastopen`, and `/proc/sys/net/core/rmem_max`.
+  * **Virtual Memory & Pagecache:** Directs runtime memory behavior via `/proc/sys/vm/swappiness`, `/proc/sys/vm/vfs_cache_pressure`, `/proc/sys/vm/drop_caches`, and `/proc/sys/vm/compact_memory`.
+  * **I/O Queue Optimization:** Tunes read-ahead buffer sizes and queue schedulers on `/sys/block/*/queue/read_ahead_kb`.
+
+---
+
+### Live Linux Kernel Telemetry & Hardware Node Inspector
+
+* **Real-Time Kernel Telemetry:**
+  * Inspects kernel release strings, hardware features, and dynamic system state live from `/proc/version`, `/proc/sys/kernel/osrelease`, `/proc/cpuinfo`, `/proc/meminfo`, and active CPU frequency paths.
+
+* **Dynamic Clock Governor Controller:**
+  * Supports real-time switching between `performance`, `schedutil`, and `powersave` governors with instant sysfs node commitment.
+
+* **Kernel VM Swappiness Selector:**
+  * Configurable swappiness presets to eliminate background paging latency during workload bursts:
+    * `10%` — Gaming Lock
+    * `30%` — Balanced
+    * `60%` — System Default
+
+* **Pagecache & Dentry Memory Compaction:**
+  * Single-tap utility to flush page caches, drop dentries/inodes (`drop_caches = 3`), and trigger immediate physical memory defragmentation (`compact_memory`).
