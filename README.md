@@ -1,4 +1,73 @@
 ### RELEASING 10 AM PST OR 5 PM PST
+
+# Apex Tuner `v1.9`
+
+**Apex Tuner** is an authentic, non-placebo performance monitoring suite, game launcher, and system telemetry engine built strictly around official Android SDK APIs and Linux kernel sysfs interfaces. 
+
+Unlike typical "booster" utilities that rely on fake animations or claim impossible unrooted tweaks, Apex Tuner operates with total transparency—offering real-time frame pacing, hardware HAL queries, low-latency Wi-Fi management, and precise system telemetry.
+
+---
+
+## Key Features
+
+### 1. Legitimate "Launch-Only Games" Engine
+* **Certified Package Classification:** Strictly filters your device library using `ApplicationInfo.CATEGORY_GAME`, `ApplicationInfo.FLAG_IS_GAME`, and embedded 3D engine signatures (**Unity, Unreal Engine, Godot, Native Vulkan/OpenGL binaries**).
+* **Automated Pre-Flight Routine:** Executed automatically upon game launch:
+  * Cleans background app cache via standard framework APIs to free headroom prior to LMK intervention.
+  * Acquires a `WifiManager.WIFI_MODE_FULL_LOW_LATENCY` lock to minimize packet sleep jitter.
+  * Toggles Do Not Disturb (DND) mode to eliminate notification interruptions.
+  * Attaches the in-game floating performance HUD (when granted overlay permission).
+* **Strict Mode Toggle:** Allows filtering strictly to certified games or switching to view all installed packages.
+
+### 2. Authentic FPS Meter & Frame Pacing Engine
+* **Choreographer VSYNC Tracking:** Hooks into `android.view.Choreographer.postFrameCallback` to capture nanosecond-precise delta times between display refresh cycles.
+* **Core Metrics Delivered:**
+  * Real-time FPS readout with color-coded stability indicators.
+  * Precise frame times in milliseconds ($16.6\text{ ms}$ for 60Hz and $8.3\text{ ms}$ for 120Hz baselines).
+  * Average FPS, 1% Low / Min FPS, Frame Jitter ($\text{ms}$), and Dropped Frame Percentage.
+  * Live rolling canvas waveform depicting the last 30 frames of frame-pacing stability.
+
+### 3. Physical RAM Telemetry & LMK Insights
+* **Hardware Memory Paging:** Queries `ActivityManager.getMemoryInfo` to report exact physical memory used, available, and total in gigabytes.
+* **Linux LMK Margin:** Displays the exact Linux Low Memory Killer threshold in megabytes, outlining the exact safety boundary.
+* **Standard Process Clearing:** Safely releases cached background memory via `killBackgroundProcesses` without risking core OS service stability or making false "virtual RAM" claims.
+
+### 4. Multi-Core CPU & Thermal Telemetry
+* **Hardware Frequency Breakdown:** Inspects Linux sysfs paths (`/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq`) to output real-time clock rates across Efficiency, Big, and Prime core clusters.
+* **Thermal Headroom:** Tracks dynamic thermal status via Android's **Application Dynamic Performance Framework (ADPF)** to detect thermal throttling states before performance degrades.
+
+### 5. GPU Hardware & 3D HAL Inspection
+* **Hardware HAL Query:** Utilizes `EGL10` to pull live OpenGL ES and Vulkan driver profiles directly from the hardware HAL (Renderer Name, Silicon Vendor, API version, and Max Texture Resolution).
+* **Anti-Scam Transparency:** Educates users on why third-party applications claiming to "overclock unrooted GPUs" are deceptive due to SELinux kernel protections.
+
+### 6. In-Game Floating Performance HUD
+* **Draggable Window Overlay:** Built with `WindowManager` (`TYPE_APPLICATION_OVERLAY`) to float real-time performance indicators—FPS, RAM load, CPU frequencies, and GPU status—over any active game.
+* **Quick Access:** Seamless toggle available across the Dashboard, Hardware Monitor, and Game Launcher.
+
+### 7. Advanced System & Network Diagnostics
+* **Wi-Fi Low-Latency Lock (`WIFI_MODE_FULL_LOW_LATENCY`):** Suspends 802.11 power-saving sleep states (API 29+) to eliminate latency spikes. Tracks Link Speed (Mbps), RSSI signal strength, and detects 2.4 GHz vs 5 GHz/6 GHz spectrum congestion with Bluetooth.
+* **Display Refresh Rate & Panel Inspector:** Leverages `WindowManager` and `Display.getMode()` to catch thermal/battery throttling on 90Hz, 120Hz, and 144Hz displays. Provides a direct shortcut to display settings.
+* **Audio Latency & FastMixer Inspector:** Evaluates `AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER` and native sample rates to calculate base hardware buffer latency ($\sim 4.0\text{ ms}$) versus high-latency Bluetooth codecs ($150\text{--}250\text{ ms}$).
+* **Storage Micro-Stutter Monitor:** Evaluates F2FS/ext4 flash storage conditions using `StatFs` and warns when free storage drops below 15% (where write amplification degrades asset streaming).
+* **Screen Awake Lock:** Employs `FLAG_KEEP_SCREEN_ON` to prevent panel timeout during extended downloads, matchmaking queues, or spectator modes.
+* **Reality Check Audits:** Built-in architectural explanations debunking common mobile performance myths (e.g., unrooted kernel tweaking, placebo RAM creation, and sandbox boundary limits).
+
+---
+
+## App Build & Version Metadata
+
+* **App Version:** `v1.9`
+* **Version Code:** `19`
+* **Package Name:** `com.aistudio.gameboost.qzvtr`
+* **Target SDK:** API 35 (Android 15)
+* **Architecture:** `arm64-v8a`
+
+
+
+## ALL OF THIS STUFF BELOW IS ALL FAKE I WANTED IT BOOST PERFORMANCE NOT DECREASE GAMING PERFORMANCE PLEASE NOT THAT A NEW VERSION WILL COME OUT LATER TOMORROW 
+
+
+
 # Release v1.9 — ULTIMATE PERFORMANCE VERSION & INTERNATIONAL TWEAKS & FIXED CODE UPDATE FOR BETTER PERFORMANCE 
 
 ### Core Settings Module
