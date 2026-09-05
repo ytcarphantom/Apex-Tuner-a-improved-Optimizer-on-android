@@ -62,6 +62,13 @@ Unlike typical "booster" utilities that rely on fake animations or claim impossi
 * **Target SDK:** API 35 (Android 15)
 * **Architecture:** `arm64-v8a`
 
+### 8. GitHub Release Manager & Update Telemetry
+* **Automatic GitHub Release Querying:** Features an integrated background update checker that polls the official GitHub API (`/repos/ytcarphantom/Apex-Tuner-a-improved-Optimizer-on-android/releases/latest`) on launch or on-demand to parse semantic version tags (e.g., `v1.9` vs `1.8`), release notes, and attached `.apk` binaries.
+* **Prominent Update Banner:** Displays a high-visibility, dismissible banner across app screens when a new version is detected, offering one-tap options to **Update Now** or view **What's New**.
+* **GitHub Release Verifier Card:** Dedicated Overview dashboard card detailing verified repository legitimacy, current vs. latest GitHub release tags, direct APK download sizes, release timestamps, and quick actions.
+* **In-App Changelog & Direct Download:** Allows users to read complete Markdown release notes directly inside the app and trigger instant downloads of the official `.apk` release asset.
+* **Version Alert Simulation Mode:** Includes a **"Test Older Version Alert"** toggle within the verifier card to instantly preview and test the update UI flow as seen by users on older builds.
+
 
 
 ## ALL OF THIS STUFF BELOW IS ALL FAKE I WANTED IT BOOST PERFORMANCE NOT DECREASE GAMING PERFORMANCE PLEASE NOT THAT A NEW VERSION WILL COME OUT LATER TOMORROW 
