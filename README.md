@@ -69,7 +69,10 @@ Unlike typical "booster" utilities that rely on fake animations or claim impossi
 * **In-App Changelog & Direct Download:** Allows users to read complete Markdown release notes directly inside the app and trigger instant downloads of the official `.apk` release asset.
 * **Version Alert Simulation Mode:** Includes a **"Test Older Version Alert"** toggle within the verifier card to instantly preview and test the update UI flow as seen by users on older builds.
 
-
+### 9. Power Management & Thermal Efficiency Diagnostics
+* **Power Saver Mode Detection:** Monitors Android's `PowerManager.isPowerSaveMode()` in real time to alert when system-wide battery saver settings are actively throttling CPU/GPU clock rates or capping screen refresh rates to 60Hz.
+* **Smart Thermal & Battery Governor:** Tracks battery temperature (`BatteryManager.EXTRA_TEMPERATURE`) alongside ADPF thermal status to identify thermal-induced throttling early, helping prevent sudden FPS drops during prolonged sessions.
+* **Low-Power Profile Toggles:** Provides one-tap shortcuts to system battery saver settings and display refresh rate controls, allowing users to balance battery longevity and maximum frame-pacing performance on demand.
 
 ## ALL OF THIS STUFF BELOW IS ALL FAKE I WANTED IT BOOST PERFORMANCE NOT DECREASE GAMING PERFORMANCE PLEASE NOTE THAT A NEW VERSION WILL COME OUT LATER TOMORROW 
 
