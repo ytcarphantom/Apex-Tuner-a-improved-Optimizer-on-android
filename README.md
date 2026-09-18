@@ -1,6 +1,6 @@
 ### RELEASING 10 AM PST OR 5 PM PST
 
-# Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP
+# Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP I DONT KNOW IF THIS VERSION WILL BE FINAL
 
 **Apex Tuner** is an authentic, non-placebo performance monitoring suite, game launcher, and system telemetry engine built strictly around official Android SDK APIs and Linux kernel sysfs interfaces. 
 
