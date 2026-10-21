@@ -1,5 +1,39 @@
 ### RELEASING ANOTHER VERSION HERE IS SOME NEW STUFF IN THE UPDATE / NEW VERSION 
 
+Android 17 Optimization & Settings Suite Upgrade
+1. Dedicated Android 17 Settings Tab
+Added a dedicated Settings destination (NavigationScreen.SETTINGS) accessible from both the top navigation bar and via direct link in the Tuning tab.
+Categorized into hardware-level tuning cards following Material 3 Cyberpunk design guidelines.
+2. ADPF Predictive Thermal Headroom Autopilot
+Configurable Thermal Trigger Threshold: Slider (60% to 95%, default 85%) to set when automated thermal defense engages.
+Automated Thermal Actions:
+Dynamic VRR Step-Down: Automatically downclocks frame cadence (e.g., 120Hz/144Hz down to 90Hz/60Hz) to prevent hard thermal throttling and frame-time spikes.
+Proactive RAM Purge: Suppresses non-gaming background pools when temperatures rise.
+Warning Alert Only: Emits notification alerts when thermal margins narrow.
+Predictive Lookahead Window: Switchable 10-second vs 20-second forecast horizon passed directly to powerManager.getThermalHeadroom(seconds).
+3. 16KB Memory Page Size & Native ELF Alignment Inspector
+Auto-Trim 16KB Page Cache: Proactively trims fragmented Linux page cache buffers on game launch and exit.
+16KB ELF Binary Alignment Inspector: Audits installed game .so binaries by inspecting ELF64 PT_LOAD segments for p_align >= 16384 compliance with Android 17 zero-overhead execution standards.
+Real-time audit card displaying verified native libraries vs legacy 4KB boundary libraries.
+4. Graphics Layer, Drivers & VRR Cadence
+Graphics Driver Preference: Toggle between System Vulkan (Vulkan 1.3+ Native), ANGLE (OpenGL ES over Vulkan), and Prerelease Game Driver.
+Variable Rate Shading (VRS) Hint: Driver-level hint for rendering efficiency on high-refresh displays.
+Target VRR Refresh Cadence: Lock target display refresh rate (60Hz, 90Hz, 120Hz, 144Hz).
+Thread Scheduling: Toggle Process.THREAD_PRIORITY_URGENT_DISPLAY (-8) and GameState.isLoading = true burst clocks.
+5. Gaming Shield & Distraction Suppression (DND)
+Configurable interruption filters: Priority Only (critical contacts/alarms), Total Silence (block all heads-up banners), or Visual Banners Only.
+Auto-restore sound and ringer volume profile when games exit.
+
+6. Haptic Sensory Feedback & Audio MMAP
+Haptic Feedback: Off, Crisp Tactile Click, or Firm Pulse via VibratorManager / VibrationEffect with an interactive "Test Haptic Pulse" button.
+FastMixer Audio Buffer: Low-latency AAudio MMAP toggle for zero-lag in-game spatial audio.
+7. Floating FPS HUD Customization & Per-Game Profiles
+Dynamic HUD Opacity: Live slider (40% to 100%) controlling overlay background transparency.
+Telemetry Density: Minimal (FPS only), Balanced (FPS + RAM + Ping), or Full ADPF Telemetry.
+Per-Game Custom Profiles: Assign custom Game Mode and target FPS to individual installed titles.
+
+
+
 1. Android Dynamic Performance Framework (ADPF) & Predictive Thermal Headroom
 Predictive Headroom Forecasting: Queries PowerManager.getThermalHeadroom() with predictive models (+10s and +20s ahead) to anticipate thermal throttling before it occurs.
 Thermal Status Level Telemetry: Live readouts for THERMAL_STATUS_NONE (Peak Boost Available), LIGHT, MODERATE, and SEVERE.
