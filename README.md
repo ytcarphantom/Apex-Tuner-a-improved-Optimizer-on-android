@@ -23,6 +23,11 @@ Kernel Scheduling Priority: Escalates active game process and HUD threads to Pro
 Ultra-Low Latency Wi-Fi Lock: Engages WIFI_MODE_FULL_LOW_LATENCY with socket congestion bypass for competitive multiplayer game
 
 
+7. Interactive UI Integration
+Tuning Tab: Added the interactive Android 17 Next-Gen Kernel Suite card with 1-Tap "Apply Android 17 Kernel Optimizations".
+Dashboard Tab: Added the Android 17 Kernel Telemetry summary card with quick boost controls.
+Hardware Tab: Displays deep kernel architecture metrics (Page Size Architecture, 16KB Page Cache Status, ADPF Margin, Thermal Forecasts, Game Mode, and Scheduler Priority).
+Game Launch Screen: Displays the Android 17 GameState Burst clock indicator during launch sequences.
 
 
 # Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP I DONT KNOW IF THIS VERSION WILL BE FINAL
