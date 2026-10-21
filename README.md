@@ -1,4 +1,29 @@
-### RELEASING 10 AM PST OR 5 PM PST
+### RELEASING ANOTHER VERSION HERE IS SOME NEW STUFF IN THE UPDATE / NEW VERSION 
+
+1. Android Dynamic Performance Framework (ADPF) & Predictive Thermal Headroom
+Predictive Headroom Forecasting: Queries PowerManager.getThermalHeadroom() with predictive models (+10s and +20s ahead) to anticipate thermal throttling before it occurs.
+Thermal Status Level Telemetry: Live readouts for THERMAL_STATUS_NONE (Peak Boost Available), LIGHT, MODERATE, and SEVERE.
+Target Frame Pacing Hints: Frame cadence synchronization mapped to target display refresh rates.
+2. 16KB Memory Page Size & Kernel Architecture
+Hardware Page Architecture Detector: Queries Os.sysconf(OsConstants._SC_PAGESIZE) to identify 16KB page size hardware and kernel alignments.
+16KB Page Cache Trim Action: Trims dirty page cache buffers and flushes unaligned memory allocations for faster game asset loading.
+3. Android 17 Game Mode Manager (GameManager)
+Game Mode Profiles:
+⚡ Performance Mode: Maximizes CPU/GPU clock governors and minimizes input latency.
+🔋 Battery Saver Mode: Directs scheduling onto efficiency cores with a 60 FPS cap.
+⚖️ Balanced Mode: System default dynamic scaling.
+🛠️ Custom Tuned Mode: Unlocks Variable Refresh Rate (VRR) targets.
+GameState CPU Burst Signaling: Signals GameState(isLoading = true) during game launch to burst CPU clocks for faster shader compilation, switching to MODE_GAMEPLAY_UNINTERRUPTIBLE during active sessions.
+4. Variable Refresh Rate (VRR) Cadence Lock
+Display Mode Discovery: Discovers native hardware display modes from Display.supportedModes (60Hz, 90Hz, 120Hz, 144Hz, 165Hz).
+Cadence Selector: Selectable chip selector to lock target vsync frame pacing.
+5. Urgent Display Thread Priority
+Kernel Scheduling Priority: Escalates active game process and HUD threads to Process.THREAD_PRIORITY_URGENT_DISPLAY (-8) to eliminate frame stuttering from background task interruptions.
+6. Wi-Fi 7 / 6E Multi-Link Operation (MLO) Low Latency
+Ultra-Low Latency Wi-Fi Lock: Engages WIFI_MODE_FULL_LOW_LATENCY with socket congestion bypass for competitive multiplayer game
+
+
+
 
 # Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP I DONT KNOW IF THIS VERSION WILL BE FINAL
 
