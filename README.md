@@ -99,6 +99,35 @@ Dashboard Tab: Added the Android 17 Kernel Telemetry summary card with quick boo
 Hardware Tab: Displays deep kernel architecture metrics (Page Size Architecture, 16KB Page Cache Status, ADPF Margin, Thermal Forecasts, Game Mode, and Scheduler Priority).
 Game Launch Screen: Displays the Android 17 GameState Burst clock indicator during launch sequences.
 
+# 📶 Wi-Fi 6 Latency Lock, Priority Game Focus & Auto-Restore Shield
+
+A suite of new networking optimizations, single-app process isolation features, and dynamic system state management tools has been added to improve online stability and maximize available system resources during gaming sessions.
+
+---
+
+## 📶 Wi-Fi 6 Latency & Jitter Lock
+* **Low-Latency Wi-Fi Lock:** Locks Wi-Fi 6 (802.11ax / 6E / 7) radios into `WIFI_MODE_FULL_LOW_LATENCY`, suppresses background multicast/mDNS broadcast wakeups, and binds sockets to the active Wi-Fi interface via `ConnectivityManager.bindProcessToNetwork` to eliminate cellular handoff spikes.
+* **QoS Packet Prioritization:** Prioritizes network packets using configurable DSCP markings:
+  * `EF Gaming (0xB8) / WMM AC_VO`
+  * `CS4 Realtime (0x88) / WMM AC_VI`
+  * `Standard`
+* **Socket Tuning & Diagnostics:** Applies `TCP_NODELAY` and `TrafficStats` thread tagging, backed by a multi-sample Test Jitter benchmark displaying live Ping and ±ms Jitter telemetry.
+
+## 🎯 Close All Apps & Prioritize 1 Game
+* **Priority Game Focus Card:** Added a dedicated focus card on the Home screen, quick-pin (`★`) buttons in **My Games**, and a **Prioritize Only This Game (#1)** toggle inside individual game customization sheets.
+* **Continuous Watchdog:** Features a persistent `ApexGameWatcherService` re-kill watchdog that sweeps running, recent, and cached background processes.
+* **Aggressive Resource Allocation:** One-tap **Close All Others** and **Boost & Play** actions isolate your primary game—sparing only essential system services and Apex Tuner—while applying `THREAD_PRIORITY_URGENT_DISPLAY` and `MODE_GAMEPLAY_UNINTERRUPTIBLE`.
+
+## ⚙️ Turn Off Performance-Draining Settings (With Auto-Restore)
+* **Automated Setting Toggles:** Automatically disables resource-draining features during gameplay:
+  * Background Auto-Sync
+  * Adaptive Auto-Brightness
+  * System Touch Sounds & Haptics
+  * Pop-ups, Chat Bubbles & Notifications (DND)
+* **Throttling Detection:** Alerts you with a one-tap shortcut if system Battery Saver mode is active and throttling CPU clocks.
+* **State Snapshot & Auto-Restore:** Takes a snapshot of your device's original configuration before boosting and restores your initial settings automatically when the game session ends or the toggle is switched off.* 
+
+
 
 # Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP I DONT KNOW IF THIS VERSION WILL BE FINAL
 
