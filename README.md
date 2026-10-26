@@ -1,4 +1,40 @@
-### RELEASING ANOTHER VERSION HERE IS SOME NEW STUFF IN THE UPDATE / NEW VERSION 
+### Apex Tuner // BAKED-IN (Android 17 Kernel & Thermal Update)
+
+# 🚀 Android 17 ("Cinnamon Bun" / API 37) Settings & Live System Integrations
+
+A comprehensive suite of new Android 17 features, telemetry tools, and system integrations has been added to the **Settings** tab, organized via a new quick category filter bar (`All Settings`, `New in Android 17`, `Thermal & RAM`, `Display`, `NPU & Audio`, `Battery & Shield`, and `Per-Game`).
+
+---
+
+## 🔋 Charging Optimization & 80% Thermal Bypass
+* **Charging Policies:** Toggle between Limit to 80% + Gaming Bypass, Adaptive Charging Pacing, and Unrestricted 100%.
+* **Live Telemetry:** Real-time monitoring of battery cell charge percentage, temperature (°C), voltage (mV), and power source status.
+* **Thermal Controls:** Customizable Plugged-In Thermal Bypass Cutoff slider (`36°C–45°C`).
+* **Shortcuts:** Direct access link to System Battery Settings.
+
+## 💬 App Bubbles, Bubble Bar & Split Shade Shield
+* **"Anything-to-Bubble":** System-wide floating window controls with modes for Suppress All, Edge Dock, or Chat Only.
+* **Alert Management:** Notification Cooldown for rapid consecutive alerts.
+* **Gaming Guard:** Split Quick-Shade Accidental Swipe Guard optimized for landscape gaming sessions.
+
+## 🧠 ProfilingManager Pre-OOM Watchdog & API 37 RAM Boundaries
+* **Watchdog Integration:** `TRIGGER_TYPE_ANOMALY` Pre-OOM Watchdog monitoring.
+* **Memory Profiles:** Selectable Process Memory Boundary profiles (`Strict API 37`, `Balanced`, `Game Priority`).
+* **Heap Snapshot Tool:** Live inspection of native heap, ART/JVM heap, and kernel LMKD margins with automatic memory reclamation under high pressure.
+
+## 📱 Large-Screen Adaptive Resizability & Foldable Posture
+* **Resizability Tier:** Automatically detects device `smallestScreenWidthDp` against Android 17's >600dp tier.
+* **Viewport Overrides:** Game Viewport Aspect Ratio Overrides (`Full Native`, `21:9 FOV`, `16:9 Pro`, `4:3 Stretch`).
+* **Posture Shift:** Foldable & Dual-Screen Gaming Posture Shift support.
+
+## ⚡ NPU Offload, Autonomous BT & L4S QoS
+* **Hardware Telemetry:** Inspect hardware Vulkan API version, NPU feature availability, and active audio output routing (BLE Audio, Bluetooth A2DP, USB-C DAC, Wired, or Speaker).
+* **Performance Toggles:** NPU Frame & Upscaling Offload, Autonomous Bluetooth Link Recovery, and L4S DSCP Socket Tagging (`TrafficStats 0xA170`).
+
+## 🛡️ Advanced Protection Mode (AAPM) & Liquid Glass Styling
+* **Security Auditing:** Keyguard and developer/USB surface status monitoring with an AAPM Gaming Guard and direct System Security & App Lock access.
+* **UI Styling:** Toggle for Android 17's frosted Liquid Glass translucent border aesthetic.
+  
 
 Android 17 Optimization & Settings Suite Upgrade
 1. Dedicated Android 17 Settings Tab
