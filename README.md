@@ -127,7 +127,25 @@ A suite of new networking optimizations, single-app process isolation features, 
 * **Throttling Detection:** Alerts you with a one-tap shortcut if system Battery Saver mode is active and throttling CPU clocks.
 * **State Snapshot & Auto-Restore:** Takes a snapshot of your device's original configuration before boosting and restores your initial settings automatically when the game session ends or the toggle is switched off.* 
 
+# 📊 Independent Draggable Usage Overlay
 
+A fully decoupled, real-time hardware monitoring overlay that can be positioned anywhere on screen—either alongside or independently of the main Game Booster control pill.
+
+---
+
+## 🪟 Decoupled Floating Window System
+* **Independent Positioning:** Fully decoupled from the 3-button Game Booster pill within Apex Tuner and as a standalone system overlay over external games.
+* **Freeform Drag:** Drag and place the usage monitor and the control pill anywhere on screen independently without layout snapping restrictions.
+
+## 📈 Real-Time Hardware Telemetry
+* **FPS Monitoring:** Live frame rate display with target Hz tracking and dynamic stability color coding.
+* **Core Metrics:** Real-time updates for CPU %, GPU %, System Temperature (°C), and RAM % (including available free GB).
+* **Visual Gauge Bars:** Mini usage indicator bars for quick visual feedback during high-load sessions.
+
+## 📐 Card & Slim Strip Modes + Modular Controls
+* **Layout Toggle (`⇄`):** Instantly switch between a comprehensive compact gauge card and a minimal single-line slim strip.
+* **Flexible Toggles:** Turn the overlay on/off directly from the middle button on the Game Booster pill or via the dedicated **Movable Usage Overlay** switch on the Home screen.
+* 
 
 # Apex Tuner `v1.9` WILL BE CALLED LEGITIMATE VERSION OF THE APP I DONT KNOW IF THIS VERSION WILL BE FINAL
 
