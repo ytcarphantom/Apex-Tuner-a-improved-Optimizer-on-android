@@ -2,6 +2,67 @@
 
 # 🚀 Android 17 ("Cinnamon Bun" / API 37) Settings & Live System Integrations
 
+# 🚀 Performance & Architecture Overhaul v2.0
+
+This release delivers comprehensive architectural improvements, performance enhancements, and UI/UX refinements focused on reducing cold-start latency, stabilizing 120 FPS Jetpack Compose rendering, eliminating memory leaks, and introducing aggressive thermal/battery management via ADPF.
+
+---
+
+## 🧹 Home Screen Cleanup & UX Refinement
+
+* **Removed Non-Functional Controls:** Removed the detached top master switch bar and redundant Max Frame Rate sub-track on the Home screen (which previously snapped back to 60 Hz due to static display metadata reads).
+* **Unified Mode & Frame-Rate Pacing:** Consolidated Default Game Mode into three direct presets (`Auto 90Hz`, `Max FPS 120Hz`, `Battery 60Hz`) wired directly to `Window.attributes.preferredRefreshRate` / `preferredDisplayModeId` and the `ADPF PerformanceHintManager` session.
+* **Streamlined Layout:** Moved game filter pills directly inside the **My Games** section when multiple games are present.
+
+---
+
+## ⚡ Platform Optimizations & Performance Impact
+
+### 1. Cold Startup & Post-First-Frame Initialization
+* **Deferred Initialization (`ApexTunerApplication` & `GameOptimizerViewModel`):** Removed synchronous `SharedPreferences` reads, `PackageManager` queries, and foreground service startups from `Application.onCreate()` and ViewModel `init`, scheduling them after the first rendered frame via `Choreographer.postFrameCallback` and `yield()` on `Dispatchers.IO`.
+* **Performance Impact:** Unblocks the Main thread during `bindApplication` and `Activity.onCreate`, reducing Time-To-Initial-Display (TTID) and preventing cold-launch frame drops.
+
+### 2. Memory Management, Leak Prevention & Allocation Control
+* **ComponentCallbacks2 Cache Purging & Heap-Bounded LRU Icon Cache:** Implemented `onTrimMemory(level)` and `onLowMemory()` in the Application class to dynamically halve or evict the `LruCache<String, ImageBitmap>` (capped at 1/16th of max heap) on `TRIM_MEMORY_UI_HIDDEN` and `TRIM_MEMORY_RUNNING_CRITICAL`.
+* **Strict ApplicationContext Isolation & Static IPC Caching:** Enforced `context.applicationContext` across engines and cached immutable hardware properties (CPU model, core count, page size, Vulkan version, NPU feature flags) lazily once instead of re-marshalling Binder parcels and `/proc/cpuinfo` strings every telemetry tick.
+* **Primitive Buffers:** Replaced boxed `Array<Long>` and `List<Long>` latency sample buffers with primitive `LongArray` allocations.
+* **Performance Impact:** Eliminates Activity context retention leaks, reduces heap footprint under OS memory pressure, and cuts per-second young-generation GC pauses.
+
+### 3. 120 FPS Rendering & Jetpack Compose Stability
+* **Compose Stability (`@Immutable`), `derivedStateOf` & Stable Keys:** Annotated all UI state data models with `@Immutable`, memoized screen action lambdas with `remember`, added explicit keys to `LazyColumn` items, and wrapped collapsible header scroll thresholds in `derivedStateOf` while keeping continuous alpha/translation in the GPU `graphicsLayer` draw phase.
+* **Async Off-Main Icon Decoding & Overdraw Elimination:** Moved `PackageManager.getApplicationIcon` bitmap decoding off composition onto `Dispatchers.IO` via `produceState`, and eliminated duplicate full-screen root background draws.
+* **Performance Impact:** Enables smart recomposition skipping on unchanged cards, prevents UI-thread bitmap decode jank while scrolling, and reduces GPU fragment overdraw to sustain 8.33 ms (120 FPS) frame budgets.
+
+### 4. Concurrency, Main-Thread Offloading & ADPF Thermal Management
+* **Off-Main Telemetry Snapshot (`Dispatchers.Default`):** Moved all `/proc`, memory info, network capability, and settings queries off `Dispatchers.Main` onto background coroutine dispatchers.
+* **ADPF PerformanceHintManager & Event-Driven Thermal Listener:** Integrated `PerformanceHintManager.Session` (API 31+) reporting actual Choreographer frame durations to the kernel CPU scheduler, paired with `PowerManager.OnThermalStatusChangedListener` (API 29+) to step down target refresh rates (`120 Hz -> 90 Hz -> 60 Hz`) and widen polling intervals (`1000 ms -> 4000 ms`) under thermal throttling.
+* **Performance Impact:** Eliminates ANR risk on the UI thread and prevents thermal runaway by proactively cooperating with the OS dynamic performance governor.
+
+### 5. Battery & Lifecycle-Aware Execution
+* **Lifecycle Telemetry Gating:** Automatically cancels the telemetry loop and removes Choreographer frame callbacks when the app enters `onStop()` and no external floating overlay is active.
+* **Performance Impact:** Drops idle background CPU wakeups to zero when the app is minimized without an active in-game HUD.
+
+### 6. Network & Radio Efficiency
+* **Offline Fast-Path & Exponential Backoff:** Added active network capability checks before socket creation and exponential retry backoff (`150 ms -> 300 ms -> 600 ms`, early abort after 3 consecutive failures) during Wi-Fi 6 latency/jitter probes.
+* **Performance Impact:** Prevents continuous cellular/Wi-Fi radio tail-state wakeups during degraded or offline connectivity.
+
+### 7. Binary Size & R8 Optimization
+* **R8 Full Shrinking:** Enabled `isMinifyEnabled = true` and `isShrinkResources = true` for release builds alongside custom ProGuard keep rules and debug log stripping.
+* **Performance Impact:** Strips unreachable bytecode, shrinks unused resources, and removes debug string-concatenation overhead in release builds.
+
+---
+
+## 🔍 Profiling & Verification Guide
+
+* **Android Studio CPU & System Trace Profiler (Perfetto):**
+  * Record a System Trace during cold launch and rapid `LazyColumn` scrolling. Verify `Choreographer#doFrame` slices on the main thread stay under **8.33 ms** (for 120 Hz panels) and confirm telemetry/icon work executes on `DefaultDispatcher-worker` threads.
+* **Android Studio Memory Profiler:**
+  * Record Java/Kotlin Allocations over 30 seconds of idle telemetry to verify flat young-generation allocation rates without `/proc` or `FeatureInfo` churn. Trigger `adb shell am send-trim-memory <pkg> RUNNING_CRITICAL` on a local device to confirm immediate `LruCache` eviction.
+* **Energy Profiler & Thermal Simulation:**
+  * Simulate thermal throttling (`adb shell cmd thermalservice override-status 3`) on a test device to observe ADPF stepping down the window refresh rate and backing off background telemetry intervals, then background the app to verify zero Choreographer wakeups.
+* **Macrobenchmark & Baseline Profiles (Local Studio Environment):**
+  * Measure `StartupTimingMetric` (`timeToInitialDisplayMs`) and `FrameTimingMetric` (`frameOverrunMs`) across `CompilationMode.Partial()` runs to validate cold-boot speed and zero-jank frame delivery.*
+   
 A comprehensive suite of new Android 17 features, telemetry tools, and system integrations has been added to the **Settings** tab, organized via a new quick category filter bar (`All Settings`, `New in Android 17`, `Thermal & RAM`, `Display`, `NPU & Audio`, `Battery & Shield`, and `Per-Game`).
 
 ---
