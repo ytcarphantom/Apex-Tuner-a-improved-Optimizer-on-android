@@ -8,6 +8,18 @@ This release delivers comprehensive architectural improvements, performance enha
 
 ---
 
+## Performance Modes & Settings
+
+* **Boost (120 Hz+ Peak):** Locks maximum supported display refresh rate on the window and display controller, sets ADPF PerformanceHintManager frame pacing to peak Hz, elevates render thread priority (`THREAD_PRIORITY_URGENT_DISPLAY`), signals Android GameManager uninterruptible gameplay mode, engages low-latency Wi-Fi lock (`WIFI_MODE_FULL_LOW_LATENCY` + DSCP `EF_GAMING` packet tagging), and reclaims OS/storage caches.
+* **Balanced (90 Hz Adaptive):** Targets smooth 90 Hz refresh cadence with adaptive VRR, enables smart thermal pre-throttle guard (82% headroom), sets display thread priority (`THREAD_PRIORITY_DISPLAY`), signals GameManager standard gameplay mode, applies real-time CS4 packet tagging, and trims transient memory buffers.
+* **Battery (60 Hz Power Saver):** Caps refresh rate at 60 Hz (16.67ms frame budget), lowers background telemetry polling frequency to reduce CPU wakeups, resets thread priority to default, disables GPU-heavy frosted blur effects, releases high-drain Wi-Fi wake locks, and enables strict thermal protection (75%).
+* **Per-Game Profiles & Quick Controls:** Custom per-game modes and frame rates saved for any game are automatically applied on launch and foreground detection, while Boost Memory, Mute Distractions, Steady Wi-Fi, and the In-Game Overlay stay synchronized between the Home screen and the floating pill.
+
+## Errors Fixed
+
+* **Display API Compatibility:** Replaced the API 30-only window display lookup with `DisplayManager` (API 26+), resolving the `NewApi` Android Lint error while properly applying 60 Hz, 90 Hz, and 120 Hz+ display modes.
+* **Verified Game Discovery:** Removed unlaunchable placeholder entries and verified every listed game/app has a valid launch intent before displaying it.
+* **Crash-Safe System Intents & Services:** Added safe fallbacks for all system permission screens (Appear on Top, Do Not Disturb, Usage Access) and foreground service startups, eliminated duplicate mode-switch snackbars, and removed all unused legacy code and resource warnings
 
 ## 🚀 New Performance Features
 
