@@ -8,6 +8,24 @@ This release delivers comprehensive architectural improvements, performance enha
 
 ---
 
+## 🚀 New Performance Features
+
+* **UFS Storage & Cache Speed Optimizer**  
+  Monitors live internal UFS storage headroom (StatFs free space, block size, and write-amplification risk below 15% free) and provides a one-tap **Boost Storage I/O** action that clears temporary caches and requests system-wide purgeable cache eviction through Android's `StorageManager` API.
+
+* **UI Animation & Touch Response Accelerator**  
+  Reads live Window, Transition, and Animator duration scales plus touch-and-hold delay directly from Android system settings, with **0.0x Instant**, **0.5x Snappy**, and **1.0x Stock** presets (applies directly when `WRITE_SECURE_SETTINGS` is granted, or copies the exact command and opens Developer Options).
+
+* **Predictive Thermal & Peak Refresh Rate Lock**  
+  Uses rate-limited ADPF `PowerManager.getThermalHeadroom(10)` 10-second forecasting alongside **Smart Pre-Throttle Pacing** (proactively stepping frame cadence before hard SoC thermal cliffs) and **Lock Peak Refresh Rate** across supported hardware display modes (60Hz–165Hz).
+
+* **Low-Latency Audio FastMixer & 16KB / Pre-OOM Diagnostics**  
+  Displays real hardware audio buffer latency (`framesPerBuffer` / sample rate in ms and Pro/Low-Latency audio support) plus one-tap **Scan Game 16KB native `.so` alignment checks** and **Pre-OOM Audit** heap/LMKD boundary snapshots.
+
+* **Native AOT & ADB Speed Toolkit (Global + Per-Game)**  
+  Generates ready-to-copy commands personalized to your Priority #1 game and display refresh rate—including **Ahead-of-Time bytecode compilation** (`cmd package compile -m speed`), peak refresh floor lock, 0.5x transitions, UFS `fstrim`, and per-game AOT/16KB tools inside each game's customization sheet.
+
+
 ## 🧹 Home Screen Cleanup & UX Refinement
 
 * **Removed Non-Functional Controls:** Removed the detached top master switch bar and redundant Max Frame Rate sub-track on the Home screen (which previously snapped back to 60 Hz due to static display metadata reads).
