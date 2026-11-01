@@ -1,4 +1,4 @@
-### Apex Tuner // BAKED-IN (Android 17 Kernel & Thermal Update)
+### v2.0.0 — System Architecture, ADPF Thermal Management & Android 17 Integration
 
 # 🚀 Android 17 ("Cinnamon Bun" / API 37) Settings & Live System Integrations
 
