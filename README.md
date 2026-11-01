@@ -8,6 +8,7 @@ This release delivers comprehensive architectural improvements, performance enha
 
 ---
 
+
 ## 🚀 New Performance Features
 
 * **UFS Storage & Cache Speed Optimizer**  
@@ -31,6 +32,8 @@ This release delivers comprehensive architectural improvements, performance enha
 * **Removed Non-Functional Controls:** Removed the detached top master switch bar and redundant Max Frame Rate sub-track on the Home screen (which previously snapped back to 60 Hz due to static display metadata reads).
 * **Unified Mode & Frame-Rate Pacing:** Consolidated Default Game Mode into three direct presets (`Auto 90Hz`, `Max FPS 120Hz`, `Battery 60Hz`) wired directly to `Window.attributes.preferredRefreshRate` / `preferredDisplayModeId` and the `ADPF PerformanceHintManager` session.
 * **Streamlined Layout:** Moved game filter pills directly inside the **My Games** section when multiple games are present.
+
+# New UI overlay inspired by Samsung One UI
 
 ---
 
