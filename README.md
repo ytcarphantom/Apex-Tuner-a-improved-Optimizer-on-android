@@ -1,4 +1,4 @@
-### v2.0.0 — System Architecture, ADPF Thermal Management & Android 17 Integration
+### v2.0 — System Architecture, ADPF Thermal Management & Android 17 Integration
 
 Official site - https://apex-tuner-hub.base44.app/
 
